@@ -24,6 +24,7 @@ export interface ModuloFoto {
   modulo_id: string;
   drive_file_id: string;
   url_publica: string | null;
+  descripcion: string | null;
   orden: number;
   creado_en: string;
 }

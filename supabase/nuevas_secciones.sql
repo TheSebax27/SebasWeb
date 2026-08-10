@@ -3,6 +3,9 @@
 -- Ejecutar en Supabase → SQL Editor
 -- ============================================================
 
+-- Descripción en fotos de módulos
+alter table modulo_fotos add column if not exists descripcion text;
+
 -- FINANZAS
 create table if not exists transacciones (
   id          uuid primary key default gen_random_uuid(),
