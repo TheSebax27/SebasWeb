@@ -32,14 +32,23 @@ export interface ModuloFoto {
 // Finanzas
 export type TipoTransaccion = 'ingreso' | 'gasto';
 
+export interface CategoriaFinanzas {
+  id: string;
+  nombre: string;
+  tipo: 'ingreso' | 'gasto' | 'ambos';
+  emoji: string | null;
+  creado_en: string;
+}
+
 export interface Transaccion {
   id: string;
   tipo: TipoTransaccion;
-  categoria: string;
+  categoria_id: string | null;
   monto: number;
   descripcion: string | null;
   fecha: string;
   creado_en: string;
+  categorias_finanzas?: CategoriaFinanzas | null;
 }
 
 // Metas
@@ -62,13 +71,21 @@ export interface Rutina {
   creado_en: string;
 }
 
-export interface EjercicioRutina {
+export interface DiaRutina {
   id: string;
   rutina_id: string;
+  nombre: string;
+  orden: number;
+}
+
+export interface EjercicioRutina {
+  id: string;
+  dia_id: string;
   nombre: string;
   series: number;
   reps: string;
   peso_kg: number | null;
+  notas: string | null;
   orden: number;
 }
 
