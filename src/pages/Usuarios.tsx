@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Perfil, Rol } from '../types';
-import { PageHeader, Btn, Field, EmptyState } from '../components/UI';
+import { PageHeader, Btn, Field, Badge, EmptyState, inputCls, selectCls } from '../components/UI';
 
 export function Usuarios() {
   const [usuarios, setUsuarios] = useState<Perfil[]>([]);
@@ -22,23 +22,16 @@ export function Usuarios() {
 
   async function manejarSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
-    setEnviando(true);
-    const { error } = await supabase.functions.invoke('crear-usuario', {
-      body: { email, password, nombre, rol },
-    });
+    setError(null); setEnviando(true);
+    const { error } = await supabase.functions.invoke('crear-usuario', { body: { email, password, nombre, rol } });
     setEnviando(false);
-    if (error) {
-      setError('No se pudo crear el usuario');
-      return;
-    }
+    if (error) { setError('No se pudo crear el usuario'); return; }
     setEmail(''); setPassword(''); setNombre(''); setRol('visualizador');
-    setMostrarForm(false);
-    await cargarUsuarios();
+    setMostrarForm(false); await cargarUsuarios();
   }
 
   return (
-    <div className="page">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 w-full">
       <PageHeader
         num="07 / USUARIOS"
         title="Usuarios"
@@ -51,24 +44,24 @@ export function Usuarios() {
       />
 
       {mostrarForm && (
-        <div className="card mb-lg" style={{ maxWidth: 480 }}>
-          <form onSubmit={manejarSubmit} className="flex-col gap-md">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6 max-w-md">
+          <form onSubmit={manejarSubmit} className="flex flex-col gap-4">
             <Field label="Nombre">
-              <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} />
+              <input className={inputCls} value={nombre} onChange={e => setNombre(e.target.value)} />
             </Field>
             <Field label="Correo">
-              <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+              <input className={inputCls} type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </Field>
             <Field label="Contraseña temporal">
-              <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+              <input className={inputCls} type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
             </Field>
             <Field label="Rol">
-              <select className="select-input" value={rol} onChange={e => setRol(e.target.value as Rol)}>
+              <select className={selectCls} value={rol} onChange={e => setRol(e.target.value as Rol)}>
                 <option value="visualizador">Visualizador</option>
                 <option value="admin">Administrador</option>
               </select>
             </Field>
-            {error && <p className="text-sm text-error">{error}</p>}
+            {error && <p className="text-xs text-rose-400">{error}</p>}
             <Btn variant="primary" type="submit" disabled={enviando}>
               {enviando ? 'Creando...' : 'Crear usuario'}
             </Btn>
@@ -79,24 +72,22 @@ export function Usuarios() {
       {usuarios.length === 0 ? (
         <EmptyState message="No hay usuarios registrados." />
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="data-table">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
             <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Correo</th>
-                <th>Rol</th>
+              <tr className="border-b border-gray-800">
+                <th className="text-left text-[10px] font-semibold tracking-widest uppercase text-gray-500 px-4 py-3">Nombre</th>
+                <th className="text-left text-[10px] font-semibold tracking-widest uppercase text-gray-500 px-4 py-3">Correo</th>
+                <th className="text-left text-[10px] font-semibold tracking-widest uppercase text-gray-500 px-4 py-3">Rol</th>
               </tr>
             </thead>
             <tbody>
               {usuarios.map(u => (
-                <tr key={u.id}>
-                  <td className="font-500">{u.nombre ?? '—'}</td>
-                  <td className="text-2">{u.email}</td>
-                  <td>
-                    <span className={`badge ${u.rol === 'admin' ? 'badge-accent' : 'badge-neutral'}`}>
-                      {u.rol}
-                    </span>
+                <tr key={u.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition-colors">
+                  <td className="px-4 py-3 text-gray-200 font-medium">{u.nombre ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-400">{u.email}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={u.rol === 'admin' ? 'success' : 'neutral'}>{u.rol}</Badge>
                   </td>
                 </tr>
               ))}
