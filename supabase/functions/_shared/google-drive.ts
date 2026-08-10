@@ -63,18 +63,21 @@ export async function crearCarpetaModulo(nombre: string): Promise<string> {
   const token = await obtenerAccessToken();
   const rootFolderId = Deno.env.get("DRIVE_ROOT_FOLDER_ID")!;
 
-  const resp = await fetch("https://www.googleapis.com/drive/v3/files", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+  const resp = await fetch(
+    "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: nombre,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [rootFolderId],
+      }),
     },
-    body: JSON.stringify({
-      name: nombre,
-      mimeType: "application/vnd.google-apps.folder",
-      parents: [rootFolderId],
-    }),
-  });
+  );
 
   if (!resp.ok) {
     throw new Error(`Error creando carpeta en Drive: ${await resp.text()}`);
@@ -124,7 +127,7 @@ export async function subirArchivoADrive(
   }
 
   const resp = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true",
     {
       method: "POST",
       headers: {
