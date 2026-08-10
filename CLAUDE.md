@@ -48,9 +48,15 @@ VITE_SUPABASE_ANON_KEY=
 ```
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
-GOOGLE_SERVICE_ACCOUNT_JSON=   # JSON completo de la cuenta de servicio
-DRIVE_ROOT_FOLDER_ID=          # ID de carpeta raíz en Shared Drive
+GOOGLE_CLIENT_ID=              # Client ID de la app OAuth2 tipo "Web" en Google Cloud Console
+GOOGLE_CLIENT_SECRET=          # Client Secret de esa app
+GOOGLE_REFRESH_TOKEN=          # Refresh token generado via OAuth Playground (cuenta silvasebastian2703@gmail.com)
+DRIVE_ROOT_FOLDER_ID=          # ID de carpeta raíz en Google Drive (Mi unidad, compartida con la app)
 ```
+
+> **Nota:** Se migró de Service Account (JWT) a OAuth2 con refresh token porque las Service Accounts
+> no tienen cuota de almacenamiento. Los archivos ahora se guardan en la cuenta personal de Google.
+> El refresh token no expira salvo que se revoque manualmente desde myaccount.google.com/permissions.
 
 ## Base de datos (Supabase / Postgres)
 | Tabla | Campos clave |
