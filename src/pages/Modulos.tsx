@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { Modulo } from '../types';
+import { PageHeader, Btn, EmptyState } from '../components/UI';
 
 export function Modulos() {
   const { perfil } = useAuth();
@@ -20,27 +21,42 @@ export function Modulos() {
       });
   }, []);
 
-  if (cargando) return <p>Cargando módulos...</p>;
-
   return (
-    <div style={{ padding: '1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Módulos</h1>
-        {perfil?.rol === 'admin' && <Link to="/modulos/nuevo">+ Nuevo módulo</Link>}
-      </div>
-
-      {modulos.length === 0 && <p>Todavía no hay módulos creados.</p>}
-
-      <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '0.75rem' }}>
-        {modulos.map((m) => (
-          <li key={m.id} style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1rem' }}>
-            <Link to={`/modulos/${m.id}`}>
-              <strong>{m.nombre}</strong>
+    <div className="page">
+      <PageHeader
+        num="01 / MÓDULOS"
+        title="Módulos"
+        sub="Galerías de contenido organizado"
+        actions={
+          perfil?.rol === 'admin' && (
+            <Link to="/modulos/nuevo">
+              <Btn variant="primary" size="sm">+ Nuevo módulo</Btn>
             </Link>
-            {m.descripcion && <p>{m.descripcion}</p>}
-          </li>
-        ))}
-      </ul>
+          )
+        }
+      />
+
+      {cargando ? (
+        <p className="text-2 text-sm">Cargando...</p>
+      ) : modulos.length === 0 ? (
+        <EmptyState message="Todavía no hay módulos creados." />
+      ) : (
+        <div className="modulo-grid">
+          {modulos.map(m => (
+            <Link key={m.id} to={`/modulos/${m.id}`}>
+              <div className="modulo-card">
+                <div className="text-md font-600">{m.nombre}</div>
+                {m.descripcion && (
+                  <div className="text-sm text-2 mt-xs truncate">{m.descripcion}</div>
+                )}
+                <div className="text-xs text-3 mt-sm">
+                  {new Date(m.creado_en).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

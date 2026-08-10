@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { PageHeader, Btn, Field } from '../components/UI';
 
 export function CrearModulo() {
   const navigate = useNavigate();
@@ -13,41 +14,46 @@ export function CrearModulo() {
     e.preventDefault();
     setError(null);
     setEnviando(true);
-
     const { data, error } = await supabase.functions.invoke('crear-modulo', {
       body: { nombre, descripcion },
     });
-
     setEnviando(false);
-
-    if (error) {
-      setError('No se pudo crear el módulo');
-      return;
-    }
-
+    if (error) { setError('No se pudo crear el módulo'); return; }
     navigate(`/modulos/${data.id}`);
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: '2rem auto', padding: '1rem' }}>
-      <h1>Nuevo módulo</h1>
-      <form onSubmit={manejarSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <input
-          placeholder="Nombre (ej. Chaqueta Sebastian)"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          required
-        />
-        <textarea
-          placeholder="Descripción (opcional)"
-          value={descripcion}
-          onChange={(e) => setDescripcion(e.target.value)}
-        />
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        <button type="submit" disabled={enviando}>
-          {enviando ? 'Creando...' : 'Crear módulo'}
-        </button>
-      </form>
+    <div className="page">
+      <PageHeader num="01 / MÓDULOS" title="Nuevo módulo" />
+
+      <div className="card" style={{ maxWidth: 480 }}>
+        <form onSubmit={manejarSubmit} className="flex-col gap-md">
+          <Field label="Nombre">
+            <input
+              className="input"
+              placeholder="Ej. Chaqueta Sebastián"
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              required
+            />
+          </Field>
+
+          <Field label="Descripción (opcional)">
+            <textarea
+              className="textarea-input"
+              placeholder="Breve descripción del módulo"
+              value={descripcion}
+              onChange={e => setDescripcion(e.target.value)}
+            />
+          </Field>
+
+          {error && <p className="text-sm text-error">{error}</p>}
+
+          <Btn variant="primary" type="submit" disabled={enviando}>
+            {enviando ? 'Creando...' : 'Crear módulo'}
+          </Btn>
+        </form>
+      </div>
     </div>
   );
 }

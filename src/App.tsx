@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { Navbar } from './components/Navbar';
+import Navbar from './components/Navbar';
 import { Login } from './pages/Login';
 import { Modulos } from './pages/Modulos';
 import { ModuloDetalle } from './pages/ModuloDetalle';
@@ -17,7 +17,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Navbar />
-      {children}
+      <main>{children}</main>
     </>
   );
 }
@@ -44,20 +44,14 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-
-          {/* Módulos */}
           <Route path="/" element={<AuthRoute><Modulos /></AuthRoute>} />
           <Route path="/modulos/nuevo" element={<AdminRoute><CrearModulo /></AdminRoute>} />
           <Route path="/modulos/:id" element={<AuthRoute><ModuloDetalle /></AuthRoute>} />
-
-          {/* Secciones personales (solo admin) */}
           <Route path="/finanzas" element={<AdminRoute><Finanzas /></AdminRoute>} />
           <Route path="/metas" element={<AdminRoute><Metas /></AdminRoute>} />
           <Route path="/gym" element={<AdminRoute><Gym /></AdminRoute>} />
           <Route path="/notas" element={<AdminRoute><Notas /></AdminRoute>} />
           <Route path="/entretenimiento" element={<AdminRoute><Entretenimiento /></AdminRoute>} />
-
-          {/* Admin */}
           <Route path="/usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
         </Routes>
       </BrowserRouter>

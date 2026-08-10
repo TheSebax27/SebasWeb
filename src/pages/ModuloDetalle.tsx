@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { Modulo, ModuloFoto } from '../types';
+import { PageHeader, Btn, Field, EmptyState } from '../components/UI';
 
 export function ModuloDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -24,28 +25,20 @@ export function ModuloDetalle() {
     setFotos((fotosData as ModuloFoto[]) ?? []);
   }
 
-  useEffect(() => {
-    if (id) cargarDatos();
-  }, [id]);
+  useEffect(() => { if (id) cargarDatos(); }, [id]);
 
   function seleccionarArchivo(e: React.ChangeEvent<HTMLInputElement>) {
-    const archivo = e.target.files?.[0] ?? null;
-    setArchivoSeleccionado(archivo);
+    setArchivoSeleccionado(e.target.files?.[0] ?? null);
     setError(null);
   }
 
   async function subirFoto() {
     if (!archivoSeleccionado || !id) return;
-
     const { data: { session }, error: errorSesion } = await supabase.auth.getSession();
-    if (errorSesion || !session) {
-      setError('Tu sesión expiró. Cierra sesión y vuelve a entrar.');
-      return;
-    }
+    if (errorSesion || !session) { setError('Sesión expirada'); return; }
 
     setSubiendo(true);
     setError(null);
-
     const formData = new FormData();
     formData.append('modulo_id', id);
     formData.append('foto', archivoSeleccionado);
@@ -63,116 +56,84 @@ export function ModuloDetalle() {
           body: formData,
         },
       );
-
       if (!resp.ok) {
         const cuerpo = await resp.json().catch(() => null);
         setError(cuerpo?.error ?? 'No se pudo subir la foto');
         return;
       }
-
       setDescripcion('');
       setArchivoSeleccionado(null);
       if (inputRef.current) inputRef.current.value = '';
       await cargarDatos();
     } catch {
-      setError('Error de conexión al subir la foto');
+      setError('Error de conexión');
     } finally {
       setSubiendo(false);
     }
   }
 
-  if (!modulo) return <p>Cargando...</p>;
+  if (!modulo) return <div className="page"><p className="text-2 text-sm">Cargando...</p></div>;
 
   return (
-    <div style={{ padding: '1rem', maxWidth: 900, margin: '0 auto' }}>
-      <h1>{modulo.nombre}</h1>
-      {modulo.descripcion && <p style={{ color: '#555' }}>{modulo.descripcion}</p>}
+    <div className="page page-wide">
+      <div className="flex items-center gap-sm mb-md">
+        <Link to="/" className="text-sm text-3">← Módulos</Link>
+      </div>
+
+      <PageHeader
+        num="01 / MÓDULOS"
+        title={modulo.nombre}
+        sub={modulo.descripcion ?? undefined}
+      />
 
       {perfil?.rol === 'admin' && (
-        <div style={{
-          margin: '1.25rem 0',
-          padding: '1rem',
-          border: '1px solid #ddd',
-          borderRadius: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
-          maxWidth: 480,
-        }}>
-          <strong>Agregar foto</strong>
+        <div className="upload-area mb-lg">
+          <div className="text-xs uppercase text-2 font-500" style={{ letterSpacing: '0.07em' }}>Agregar foto</div>
 
-          <input
-            type="text"
-            placeholder="Descripción (opcional)"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            style={{ padding: '0.4rem 0.6rem', borderRadius: 6, border: '1px solid #ccc' }}
-          />
-
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              style={{ padding: '0.4rem 0.8rem', borderRadius: 6, cursor: 'pointer' }}
-            >
-              {archivoSeleccionado ? '📎 ' + archivoSeleccionado.name : 'Seleccionar imagen'}
-            </button>
+          <Field label="Descripción (opcional)">
             <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              onChange={seleccionarArchivo}
-              hidden
+              className="input"
+              type="text"
+              placeholder="Ej. Vista frontal"
+              value={descripcion}
+              onChange={e => setDescripcion(e.target.value)}
             />
+          </Field>
+
+          <div className="flex gap-sm items-center flex-wrap">
+            <Btn variant="ghost" size="sm" type="button" onClick={() => inputRef.current?.click()}>
+              {archivoSeleccionado ? `📎 ${archivoSeleccionado.name}` : 'Seleccionar imagen'}
+            </Btn>
+            <input ref={inputRef} type="file" accept="image/*" onChange={seleccionarArchivo} hidden />
             {archivoSeleccionado && (
-              <button
-                type="button"
-                onClick={subirFoto}
-                disabled={subiendo}
-                style={{
-                  padding: '0.4rem 0.8rem',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  background: '#1a73e8',
-                  color: '#fff',
-                  border: 'none',
-                }}
-              >
+              <Btn variant="primary" size="sm" type="button" onClick={subirFoto} disabled={subiendo}>
                 {subiendo ? 'Subiendo...' : 'Subir'}
-              </button>
+              </Btn>
             )}
           </div>
 
-          {error && <p style={{ color: 'crimson', margin: 0 }}>{error}</p>}
+          {error && <p className="text-sm text-error">{error}</p>}
         </div>
       )}
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '1rem',
-      }}>
-        {fotos.map((f) => (
-          <div key={f.id} style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
-            <img
-              src={f.url_publica ?? ''}
-              alt={f.descripcion ?? modulo.nombre}
-              style={{ width: '100%', objectFit: 'cover', aspectRatio: '1', display: 'block' }}
-            />
-            {f.descripcion && (
-              <p style={{
-                margin: 0,
-                padding: '0.5rem 0.6rem',
-                fontSize: '0.85rem',
-                color: '#444',
-                background: '#fafafa',
-              }}>
-                {f.descripcion}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
+      {fotos.length === 0 ? (
+        <EmptyState message="Todavía no hay fotos en este módulo." />
+      ) : (
+        <div className="photo-grid">
+          {fotos.map(f => (
+            <div key={f.id} className="photo-item">
+              <img
+                src={f.url_publica ?? ''}
+                alt={f.descripcion ?? modulo.nombre}
+                style={{ width: '100%', objectFit: 'cover', aspectRatio: '1' }}
+              />
+              {f.descripcion && (
+                <div className="photo-caption">{f.descripcion}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Perfil, Rol } from '../types';
+import { PageHeader, Btn, Field, EmptyState } from '../components/UI';
 
 export function Usuarios() {
   const [usuarios, setUsuarios] = useState<Perfil[]>([]);
@@ -10,83 +11,99 @@ export function Usuarios() {
   const [rol, setRol] = useState<Rol>('visualizador');
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [mostrarForm, setMostrarForm] = useState(false);
 
   async function cargarUsuarios() {
     const { data } = await supabase.from('perfiles').select('*').order('creado_en');
     setUsuarios((data as Perfil[]) ?? []);
   }
 
-  useEffect(() => {
-    cargarUsuarios();
-  }, []);
+  useEffect(() => { cargarUsuarios(); }, []);
 
   async function manejarSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setEnviando(true);
-
     const { error } = await supabase.functions.invoke('crear-usuario', {
       body: { email, password, nombre, rol },
     });
-
     setEnviando(false);
-
     if (error) {
-      setError('No se pudo crear el usuario (revisa que el correo no exista ya)');
+      setError('No se pudo crear el usuario');
       return;
     }
-
-    setEmail('');
-    setPassword('');
-    setNombre('');
-    setRol('visualizador');
+    setEmail(''); setPassword(''); setNombre(''); setRol('visualizador');
+    setMostrarForm(false);
     await cargarUsuarios();
   }
 
   return (
-    <div style={{ padding: '1rem', maxWidth: 640 }}>
-      <h1>Usuarios</h1>
+    <div className="page">
+      <PageHeader
+        num="07 / USUARIOS"
+        title="Usuarios"
+        sub="Gestión de accesos"
+        actions={
+          <Btn variant="primary" size="sm" onClick={() => setMostrarForm(f => !f)}>
+            {mostrarForm ? 'Cancelar' : '+ Nuevo usuario'}
+          </Btn>
+        }
+      />
 
-      <form onSubmit={manejarSubmit} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-        <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        <input placeholder="Correo" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input
-          placeholder="Contraseña temporal"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-        />
-        <select value={rol} onChange={(e) => setRol(e.target.value as Rol)}>
-          <option value="visualizador">Visualizador</option>
-          <option value="admin">Administrador</option>
-        </select>
-        <button type="submit" disabled={enviando}>
-          {enviando ? 'Creando...' : 'Crear usuario'}
-        </button>
-      </form>
+      {mostrarForm && (
+        <div className="card mb-lg" style={{ maxWidth: 480 }}>
+          <form onSubmit={manejarSubmit} className="flex-col gap-md">
+            <Field label="Nombre">
+              <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} />
+            </Field>
+            <Field label="Correo">
+              <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+            </Field>
+            <Field label="Contraseña temporal">
+              <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+            </Field>
+            <Field label="Rol">
+              <select className="select-input" value={rol} onChange={e => setRol(e.target.value as Rol)}>
+                <option value="visualizador">Visualizador</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </Field>
+            {error && <p className="text-sm text-error">{error}</p>}
+            <Btn variant="primary" type="submit" disabled={enviando}>
+              {enviando ? 'Creando...' : 'Crear usuario'}
+            </Btn>
+          </form>
+        </div>
+      )}
 
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
-
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th align="left">Correo</th>
-            <th align="left">Nombre</th>
-            <th align="left">Rol</th>
-          </tr>
-        </thead>
-        <tbody>
-          {usuarios.map((u) => (
-            <tr key={u.id}>
-              <td>{u.email}</td>
-              <td>{u.nombre ?? '—'}</td>
-              <td>{u.rol}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {usuarios.length === 0 ? (
+        <EmptyState message="No hay usuarios registrados." />
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Rol</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map(u => (
+                <tr key={u.id}>
+                  <td className="font-500">{u.nombre ?? '—'}</td>
+                  <td className="text-2">{u.email}</td>
+                  <td>
+                    <span className={`badge ${u.rol === 'admin' ? 'badge-accent' : 'badge-neutral'}`}>
+                      {u.rol}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

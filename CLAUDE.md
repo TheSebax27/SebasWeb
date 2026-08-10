@@ -7,8 +7,16 @@ App web personal de Sebastián. Incluye gestión de módulos con galería de fot
 - **Frontend:** React 18 + TypeScript + Vite + React Router v6
 - **Backend:** Supabase (Auth, Postgres, Edge Functions en Deno/TypeScript)
 - **Almacenamiento fotos:** Google Drive via OAuth2 refresh token
-- **Sin CSS framework** — estilos inline directamente en JSX
+- **CSS:** Sistema de diseño propio en `src/index.css` con CSS custom properties — NO estilos inline ni framework externo
+- **Tipografía:** Instrument Serif (títulos/display) + Inter (UI) via Google Fonts en `index.html`
+- **Componentes compartidos:** `src/components/UI.tsx` — PageHeader, Btn, Field, Badge, Divider, EmptyState, StatTile
 - **Deploy:** Vercel (frontend) + Supabase (backend/functions)
+
+## Sistema de diseño
+- **Paleta:** Crema cálida (#F7F6F3 bg), verde bosque profundo (#1A3A2E acento), negro cálido (#111110)
+- **Elemento distintivo:** Numeración de secciones `01 / MÓDULOS`, `02 / FINANZAS`, etc. en cada PageHeader
+- **Clases clave:** `.page`, `.page-wide`, `.card`, `.btn`, `.btn-primary/ghost/text/danger`, `.input`, `.field`, `.badge`, `.pill-tab`, `.stat-tile`, `.ph` (page header)
+- **Dark mode:** Soportado via `@media (prefers-color-scheme: dark)` con CSS vars
 
 ## Estructura de carpetas
 ```

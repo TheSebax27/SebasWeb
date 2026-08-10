@@ -1,70 +1,60 @@
-import { Link, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../supabaseClient';
 
-const links = [
-  { to: '/', label: 'Módulos' },
-  { to: '/finanzas', label: 'Finanzas' },
-  { to: '/metas', label: 'Metas' },
-  { to: '/gym', label: 'Gym' },
-  { to: '/notas', label: 'Notas' },
-  { to: '/entretenimiento', label: 'Entretenimiento' },
+const LINKS = [
+  { to: '/',                num: '01', label: 'Módulos' },
+  { to: '/finanzas',        num: '02', label: 'Finanzas' },
+  { to: '/metas',           num: '03', label: 'Metas' },
+  { to: '/gym',             num: '04', label: 'Gym' },
+  { to: '/notas',           num: '05', label: 'Notas' },
+  { to: '/entretenimiento', num: '06', label: 'Entretenimiento' },
 ];
 
-export function Navbar() {
-  const { perfil, cerrarSesion } = useAuth();
-  const { pathname } = useLocation();
+export default function Navbar() {
+  const { perfil } = useAuth();
+  const navigate = useNavigate();
+
+  async function logout() {
+    await supabase.auth.signOut();
+    navigate('/login');
+  }
 
   return (
-    <nav style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.25rem',
-      padding: '0.5rem 1rem',
-      borderBottom: '1px solid #ddd',
-      flexWrap: 'wrap',
-    }}>
-      {links.map(({ to, label }) => (
-        <Link
-          key={to}
-          to={to}
-          style={{
-            padding: '0.35rem 0.75rem',
-            borderRadius: 6,
-            textDecoration: 'none',
-            fontWeight: pathname === to ? 600 : 400,
-            background: pathname === to ? '#e8f0fe' : 'transparent',
-            color: pathname === to ? '#1a73e8' : 'inherit',
-          }}
+    <nav className="nav">
+      <div className="nav-brand">S</div>
+      <div className="nav-links">
+        {LINKS.map(l => (
+          <NavLink
+            key={l.to}
+            to={l.to}
+            end={l.to === '/'}
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-num">{l.num}</span>
+            {l.label}
+          </NavLink>
+        ))}
+        {perfil?.rol === 'admin' && (
+          <NavLink
+            to="/usuarios"
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-num">07</span>
+            Usuarios
+          </NavLink>
+        )}
+      </div>
+      <div className="nav-right">
+        <span className="nav-user">{perfil?.nombre ?? perfil?.email}</span>
+        <button
+          onClick={logout}
+          className="btn btn-text btn-sm"
+          style={{ fontSize: '11px' }}
         >
-          {label}
-        </Link>
-      ))}
-
-      {perfil?.rol === 'admin' && (
-        <Link
-          to="/usuarios"
-          style={{
-            padding: '0.35rem 0.75rem',
-            borderRadius: 6,
-            textDecoration: 'none',
-            fontWeight: pathname === '/usuarios' ? 600 : 400,
-            background: pathname === '/usuarios' ? '#e8f0fe' : 'transparent',
-            color: pathname === '/usuarios' ? '#1a73e8' : 'inherit',
-          }}
-        >
-          Usuarios
-        </Link>
-      )}
-
-      <span style={{ marginLeft: 'auto', fontSize: '0.85rem', color: '#666' }}>
-        {perfil?.nombre ?? perfil?.email}
-      </span>
-      <button
-        onClick={cerrarSesion}
-        style={{ padding: '0.35rem 0.75rem', borderRadius: 6, cursor: 'pointer' }}
-      >
-        Salir
-      </button>
+          Salir
+        </button>
+      </div>
     </nav>
   );
 }

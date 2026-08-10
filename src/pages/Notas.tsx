@@ -1,106 +1,60 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Nota } from '../types';
+import { PageHeader, Btn, EmptyState } from '../components/UI';
 
 const COLORES = [
-  { valor: '#ffffff', label: 'Blanco' },
-  { valor: '#fef9c3', label: 'Amarillo' },
-  { valor: '#dcfce7', label: 'Verde' },
-  { valor: '#dbeafe', label: 'Azul' },
-  { valor: '#fce7f3', label: 'Rosa' },
-  { valor: '#ede9fe', label: 'Violeta' },
-  { valor: '#ffedd5', label: 'Naranja' },
-  { valor: '#f1f5f9', label: 'Gris' },
+  { valor: '#FEF9C3', label: 'Amarillo' },
+  { valor: '#DCFCE7', label: 'Verde' },
+  { valor: '#DBEAFE', label: 'Azul' },
+  { valor: '#FCE7F3', label: 'Rosa' },
+  { valor: '#EDE9FE', label: 'Violeta' },
+  { valor: '#FFEDD5', label: 'Naranja' },
+  { valor: '#F1F5F9', label: 'Gris' },
+  { valor: '#FFFFFF', label: 'Blanco' },
 ];
 
-interface NotaEditando {
-  id: string | null; // null = nueva
-  titulo: string;
-  contenido: string;
-  color: string;
-}
-
-const NOTA_VACIA: NotaEditando = { id: null, titulo: '', contenido: '', color: '#fef9c3' };
+interface NotaEditando { id: string | null; titulo: string; contenido: string; color: string; }
+const NOTA0: NotaEditando = { id: null, titulo: '', contenido: '', color: '#FEF9C3' };
 
 export function Notas() {
-  const [notas, setNotas] = useState<Nota[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [editando, setEditando] = useState<NotaEditando | null>(null);
+  const [notas, setNotas]         = useState<Nota[]>([]);
+  const [cargando, setCargando]   = useState(true);
+  const [editando, setEditando]   = useState<NotaEditando | null>(null);
   const [guardando, setGuardando] = useState(false);
   const tituloRef = useRef<HTMLInputElement>(null);
 
   async function cargar() {
-    const { data } = await supabase
-      .from('notas')
-      .select('*')
-      .order('actualizado_en', { ascending: false });
+    const { data } = await supabase.from('notas').select('*').order('actualizado_en', { ascending: false });
     setNotas((data as Nota[]) ?? []);
     setCargando(false);
   }
 
   useEffect(() => { cargar(); }, []);
-
-  useEffect(() => {
-    if (editando) tituloRef.current?.focus();
-  }, [editando?.id]);
-
-  function abrirNueva() {
-    setEditando({ ...NOTA_VACIA });
-  }
-
-  function abrirEditar(nota: Nota) {
-    setEditando({ id: nota.id, titulo: nota.titulo, contenido: nota.contenido ?? '', color: nota.color });
-  }
-
-  function cancelar() {
-    setEditando(null);
-  }
+  useEffect(() => { if (editando) tituloRef.current?.focus(); }, [editando?.id]);
 
   async function guardar() {
     if (!editando) return;
-    if (!editando.titulo.trim() && !editando.contenido.trim()) {
-      setEditando(null);
-      return;
-    }
-
+    if (!editando.titulo.trim() && !editando.contenido.trim()) { setEditando(null); return; }
     setGuardando(true);
 
     if (editando.id) {
-      // Actualizar
-      const { error } = await supabase
-        .from('notas')
-        .update({
-          titulo: editando.titulo.trim() || 'Sin título',
-          contenido: editando.contenido.trim() || null,
-          color: editando.color,
-          actualizado_en: new Date().toISOString(),
-        })
-        .eq('id', editando.id);
-
-      if (!error) {
-        setNotas((prev) =>
-          prev.map((n) =>
-            n.id === editando.id
-              ? { ...n, titulo: editando.titulo.trim() || 'Sin título', contenido: editando.contenido.trim() || null, color: editando.color, actualizado_en: new Date().toISOString() }
-              : n,
-          ),
-        );
-      }
+      const { error } = await supabase.from('notas').update({
+        titulo: editando.titulo.trim() || 'Sin título',
+        contenido: editando.contenido.trim() || null,
+        color: editando.color,
+        actualizado_en: new Date().toISOString(),
+      }).eq('id', editando.id);
+      if (!error) setNotas(p => p.map(n => n.id === editando.id
+        ? { ...n, titulo: editando.titulo.trim() || 'Sin título', contenido: editando.contenido.trim() || null, color: editando.color, actualizado_en: new Date().toISOString() }
+        : n));
     } else {
-      // Crear
-      const { data, error } = await supabase
-        .from('notas')
-        .insert({
-          titulo: editando.titulo.trim() || 'Sin título',
-          contenido: editando.contenido.trim() || null,
-          color: editando.color,
-        })
-        .select()
-        .single();
-
-      if (!error && data) {
-        setNotas((prev) => [data as Nota, ...prev]);
-      }
+      const { data, error } = await supabase.from('notas').insert({
+        titulo: editando.titulo.trim() || 'Sin título',
+        contenido: editando.contenido.trim() || null,
+        color: editando.color,
+      }).select().single();
+      if (!error && data) setNotas(p => [data as Nota, ...p]);
     }
 
     setGuardando(false);
@@ -110,179 +64,84 @@ export function Notas() {
   async function eliminar(id: string) {
     if (!confirm('¿Eliminar esta nota?')) return;
     await supabase.from('notas').delete().eq('id', id);
-    setNotas((prev) => prev.filter((n) => n.id !== id));
+    setNotas(p => p.filter(n => n.id !== id));
     if (editando?.id === id) setEditando(null);
   }
 
-  if (cargando) return <p style={{ padding: '1rem' }}>Cargando...</p>;
-
   return (
-    <div style={{ padding: '1rem', maxWidth: 960, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-        <h1 style={{ margin: 0 }}>Notas</h1>
-        <button
-          onClick={abrirNueva}
-          style={{ padding: '0.4rem 0.9rem', borderRadius: 6, cursor: 'pointer', background: '#1a73e8', color: '#fff', border: 'none', fontSize: '0.95rem' }}
-        >
-          + Nueva nota
-        </button>
-      </div>
+    <div className="page page-wide">
+      <PageHeader
+        num="05 / NOTAS"
+        title="Notas"
+        sub="Apuntes rápidos y pensamientos"
+        actions={
+          <Btn variant="primary" size="sm" onClick={() => setEditando({ ...NOTA0 })}>
+            + Nueva nota
+          </Btn>
+        }
+      />
 
-      {/* Editor */}
+      {/* Modal editor */}
       {editando && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 100, padding: '1rem',
-        }}
-          onClick={(e) => { if (e.target === e.currentTarget) guardar(); }}
-        >
-          <div style={{
-            background: editando.color,
-            borderRadius: 12,
-            padding: '1.25rem',
-            width: '100%',
-            maxWidth: 520,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-          }}>
+        <div className="overlay" onClick={e => { if (e.target === e.currentTarget) guardar(); }}>
+          <div className="modal" style={{ background: editando.color }}>
             <input
               ref={tituloRef}
+              className="input"
               placeholder="Título"
               value={editando.titulo}
-              onChange={(e) => setEditando({ ...editando, titulo: e.target.value })}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                outline: 'none',
-                width: '100%',
-                padding: '0.25rem 0',
-                borderBottom: '1px solid rgba(0,0,0,0.12)',
-              }}
+              onChange={e => setEditando({ ...editando, titulo: e.target.value })}
+              style={{ background: 'transparent', border: 'none', borderBottom: '1px solid rgba(0,0,0,0.12)', borderRadius: 0, fontWeight: 600, fontSize: '16px', outline: 'none', padding: '0.25rem 0' }}
             />
 
             <textarea
+              className="textarea-input"
               placeholder="Escribe algo..."
               value={editando.contenido}
-              onChange={(e) => setEditando({ ...editando, contenido: e.target.value })}
+              onChange={e => setEditando({ ...editando, contenido: e.target.value })}
               rows={8}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                outline: 'none',
-                resize: 'vertical',
-                width: '100%',
-                fontSize: '0.95rem',
-                lineHeight: 1.6,
-                fontFamily: 'inherit',
-                padding: '0.25rem 0',
-              }}
+              style={{ background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', fontSize: '14px', padding: '0.25rem 0', boxShadow: 'none' }}
             />
 
-            {/* Paleta de colores */}
-            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8rem', color: '#666', marginRight: '0.25rem' }}>Color:</span>
-              {COLORES.map((c) => (
+            <div className="flex gap-xs items-center flex-wrap">
+              <span className="text-xs text-2 mr-xs">Color</span>
+              {COLORES.map(c => (
                 <button
                   key={c.valor}
                   title={c.label}
+                  className={`color-swatch${editando.color === c.valor ? ' active' : ''}`}
+                  style={{ background: c.valor, border: editando.color === c.valor ? '2px solid var(--accent)' : '1px solid rgba(0,0,0,0.15)' }}
                   onClick={() => setEditando({ ...editando, color: c.valor })}
-                  style={{
-                    width: 22, height: 22,
-                    borderRadius: '50%',
-                    background: c.valor,
-                    border: editando.color === c.valor ? '2px solid #1a73e8' : '1px solid #ccc',
-                    cursor: 'pointer',
-                    padding: 0,
-                    flexShrink: 0,
-                  }}
                 />
               ))}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              {editando.id && (
-                <button
-                  onClick={() => eliminar(editando.id!)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.85rem' }}
-                >
-                  Eliminar
-                </button>
-              )}
-              <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
-                <button
-                  onClick={cancelar}
-                  style={{ padding: '0.35rem 0.75rem', borderRadius: 6, cursor: 'pointer', border: '1px solid #ccc', background: 'transparent' }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={guardar}
-                  disabled={guardando}
-                  style={{ padding: '0.35rem 0.75rem', borderRadius: 6, cursor: 'pointer', background: '#1a73e8', color: '#fff', border: 'none' }}
-                >
+            <div className="flex justify-between items-center">
+              {editando.id ? (
+                <Btn variant="danger" size="sm" onClick={() => eliminar(editando.id!)}>Eliminar</Btn>
+              ) : <div />}
+              <div className="flex gap-xs">
+                <Btn variant="ghost" size="sm" onClick={() => setEditando(null)}>Cancelar</Btn>
+                <Btn variant="primary" size="sm" onClick={guardar} disabled={guardando}>
                   {guardando ? 'Guardando...' : 'Guardar'}
-                </button>
+                </Btn>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Grid de notas */}
-      {notas.length === 0 && (
-        <p style={{ color: '#888' }}>No hay notas todavía. ¡Crea una!</p>
-      )}
+      {cargando && <p className="text-sm text-2">Cargando...</p>}
+      {!cargando && notas.length === 0 && <EmptyState message="No hay notas todavía. ¡Crea una!" />}
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-        gap: '0.85rem',
-      }}>
-        {notas.map((nota) => (
-          <div
-            key={nota.id}
-            onClick={() => abrirEditar(nota)}
-            style={{
-              background: nota.color,
-              border: '1px solid rgba(0,0,0,0.08)',
-              borderRadius: 10,
-              padding: '0.85rem',
-              cursor: 'pointer',
-              minHeight: 120,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.4rem',
-              transition: 'box-shadow 0.15s',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.13)')}
-            onMouseLeave={(e) => (e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)')}
-          >
-            {nota.titulo && (
-              <strong style={{ fontSize: '0.95rem', lineHeight: 1.3 }}>{nota.titulo}</strong>
-            )}
-            {nota.contenido && (
-              <p style={{
-                margin: 0,
-                fontSize: '0.85rem',
-                color: '#444',
-                overflow: 'hidden',
-                display: '-webkit-box',
-                WebkitLineClamp: 6,
-                WebkitBoxOrient: 'vertical',
-                lineHeight: 1.5,
-              }}>
-                {nota.contenido}
-              </p>
-            )}
-            <span style={{ marginTop: 'auto', fontSize: '0.73rem', color: '#999' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.85rem' }}>
+        {notas.map(nota => (
+          <div key={nota.id} className="note-card" style={{ background: nota.color }} onClick={() => setEditando({ id: nota.id, titulo: nota.titulo, contenido: nota.contenido ?? '', color: nota.color })}>
+            {nota.titulo && <div className="note-card-title">{nota.titulo}</div>}
+            {nota.contenido && <div className="note-card-body">{nota.contenido}</div>}
+            <div className="note-card-date">
               {new Date(nota.actualizado_en).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
-            </span>
+            </div>
           </div>
         ))}
       </div>
