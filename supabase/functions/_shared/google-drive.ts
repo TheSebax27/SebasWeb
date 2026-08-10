@@ -1,16 +1,5 @@
-import { SignJWT, importPKCS8 } from "https://esm.sh/jose@5";
-
-interface CredencialesServicio {
-  client_email: string;
-  private_key: string;
-}
-
 let tokenCacheado: { token: string; expira: number } | null = null;
 
-/**
- * Obtiene (y cachea en memoria del proceso) un access_token OAuth2
- * para la cuenta de servicio de Google, con scope de Drive.
- */
 async function obtenerAccessToken(): Promise<string> {
   const ahora = Math.floor(Date.now() / 1000);
 
@@ -18,31 +7,24 @@ async function obtenerAccessToken(): Promise<string> {
     return tokenCacheado.token;
   }
 
-  const credencialesRaw = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
-  if (!credencialesRaw) {
-    throw new Error("Falta variable de entorno GOOGLE_SERVICE_ACCOUNT_JSON");
+  const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+  const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+  const refreshToken = Deno.env.get("GOOGLE_REFRESH_TOKEN");
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      "Faltan variables de entorno: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET o GOOGLE_REFRESH_TOKEN",
+    );
   }
-  const credenciales: CredencialesServicio = JSON.parse(credencialesRaw);
-
-  const privateKey = await importPKCS8(credenciales.private_key, "RS256");
-
-  const jwt = await new SignJWT({
-    scope: "https://www.googleapis.com/auth/drive",
-  })
-    .setProtectedHeader({ alg: "RS256", typ: "JWT" })
-    .setIssuer(credenciales.client_email)
-    .setSubject(credenciales.client_email)
-    .setAudience("https://oauth2.googleapis.com/token")
-    .setIssuedAt(ahora)
-    .setExpirationTime(ahora + 3600)
-    .sign(privateKey);
 
   const resp = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
     }),
   });
 
@@ -55,10 +37,6 @@ async function obtenerAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-/**
- * Crea una carpeta en Drive dentro de la carpeta raíz configurada
- * (DRIVE_ROOT_FOLDER_ID) y devuelve su ID.
- */
 export async function crearCarpetaModulo(nombre: string): Promise<string> {
   const token = await obtenerAccessToken();
   const rootFolderId = Deno.env.get("DRIVE_ROOT_FOLDER_ID")!;
@@ -87,10 +65,6 @@ export async function crearCarpetaModulo(nombre: string): Promise<string> {
   return data.id as string;
 }
 
-/**
- * Sube un archivo (bytes) a una carpeta específica de Drive.
- * Devuelve el ID del archivo creado.
- */
 export async function subirArchivoADrive(
   carpetaId: string,
   nombreArchivo: string,
@@ -144,7 +118,6 @@ export async function subirArchivoADrive(
 
   const data = await resp.json();
 
-  // Hace el archivo visible con el link (lector), para poder mostrarlo en la app
   await fetch(
     `https://www.googleapis.com/drive/v3/files/${data.id}/permissions`,
     {
