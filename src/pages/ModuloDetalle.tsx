@@ -29,32 +29,51 @@ export function ModuloDetalle() {
     const archivo = e.target.files?.[0];
     if (!archivo || !id) return;
 
-    setSubiendo(true);
     setError(null);
+
+    // 1. Confirmar que hay una sesión activa ANTES de intentar subir
+    const { data: { session }, error: errorSesion } = await supabase.auth.getSession();
+
+    if (errorSesion || !session) {
+      setError('Tu sesión expiró. Cierra sesión y vuelve a entrar.');
+      e.target.value = '';
+      return;
+    }
+
+    setSubiendo(true);
 
     const formData = new FormData();
     formData.append('modulo_id', id);
     formData.append('foto', archivo);
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-    const resp = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subir-foto`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-        body: formData,
-      },
-    );
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subir-foto`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: anonKey,
+          },
+          body: formData,
+        },
+      );
 
-    setSubiendo(false);
+      if (!resp.ok) {
+        const cuerpo = await resp.json().catch(() => null);
+        setError(cuerpo?.error ?? cuerpo?.message ?? 'No se pudo subir la foto');
+        return;
+      }
 
-    if (!resp.ok) {
-      setError('No se pudo subir la foto');
-      return;
+      await cargarDatos();
+    } catch (err) {
+      setError('Error de conexión al subir la foto');
+    } finally {
+      setSubiendo(false);
+      e.target.value = '';
     }
-
-    await cargarDatos();
   }
 
   if (!modulo) return <p>Cargando...</p>;
