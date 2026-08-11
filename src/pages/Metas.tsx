@@ -93,7 +93,7 @@ export function Metas() {
       </div>
 
       {mostrarForm && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6 flex flex-col gap-4 max-w-lg">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-5 mb-6 flex flex-col gap-4 max-w-lg">
           <Field label="Título">
             <input className={inputCls} placeholder="¿Qué quieres lograr?" value={form.titulo} onChange={e=>setForm({...form,titulo:e.target.value})} />
           </Field>
@@ -128,7 +128,7 @@ export function Metas() {
 
       <div className="flex flex-col gap-3">
         {filtradas.map(meta=>(
-          <div key={meta.id} className={`bg-gray-900 border rounded-xl p-5 transition-colors ${meta.completada?'border-gray-800 opacity-70':'border-gray-800 hover:border-gray-700'}`}>
+          <div key={meta.id} className={`bg-gray-900/70 backdrop-blur-sm border rounded-xl p-5 transition-colors ${meta.completada?'border-gray-800 opacity-70':'border-gray-800 hover:border-gray-700'}`}>
             <div className="flex justify-between items-start gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap">

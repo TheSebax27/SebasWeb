@@ -44,7 +44,7 @@ export function Usuarios() {
       />
 
       {mostrarForm && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6 max-w-md">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-6 mb-6 max-w-md">
           <form onSubmit={manejarSubmit} className="flex flex-col gap-4">
             <Field label="Nombre">
               <input className={inputCls} value={nombre} onChange={e => setNombre(e.target.value)} />
@@ -72,7 +72,7 @@ export function Usuarios() {
       {usuarios.length === 0 ? (
         <EmptyState message="No hay usuarios registrados." />
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">

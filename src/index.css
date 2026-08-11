@@ -1,12 +1,54 @@
 @import "tailwindcss";
 
+/* ══════════════════════════════════════════════════════════════
+   SEBAS WEB — sistema de diseño
+   Identidad: tinta cálida casi negra + dorado envejecido + papel
+   crema. Nace de la portada de acceso (vidrio esmerilado sobre
+   un collage de cómic) y se repite en toda la app.
+   ══════════════════════════════════════════════════════════════ */
+@theme {
+  /* -- Tinta (reemplaza la escala "gray") ------------------------ */
+  --color-gray-50:  #F8F3E8;
+  --color-gray-100: #EFE7D3;
+  --color-gray-200: #DED0AF;
+  --color-gray-300: #C7B78C;
+  --color-gray-400: #A5987A;
+  --color-gray-500: #877A62;
+  --color-gray-600: #6B5F4B;
+  --color-gray-700: #493F30;
+  --color-gray-800: #302921;
+  --color-gray-900: #1D1712;
+  --color-gray-950: #100C09;
+
+  /* -- Dorado (reemplaza la escala "emerald" — acento principal) - */
+  --color-emerald-50:  #FBF3DC;
+  --color-emerald-100: #F5E6B8;
+  --color-emerald-200: #ECD48A;
+  --color-emerald-300: #DFBC5C;
+  --color-emerald-400: #D1A63F;
+  --color-emerald-500: #BE8F2A;
+  --color-emerald-600: #9C7420;
+  --color-emerald-700: #7A5A19;
+  --color-emerald-800: #5A4213;
+  --color-emerald-900: #3C2C0D;
+  --color-emerald-950: #241A08;
+
+  /* -- Salvia (verde apagado, solo para estados "éxito") --------- */
+  --color-sage-400: #8FAF64;
+  --color-sage-900: #23300F;
+  --color-sage-950: #16200D;
+
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 @layer base {
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: #030712;
-    color: #f9fafb;
+    background-color: #100C09;
+    color: #F8F3E8;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -23,8 +65,11 @@
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #111827; }
-::-webkit-scrollbar-thumb { background: #374151; border-radius: 99px; }
+::-webkit-scrollbar-track { background: #1D1712; }
+::-webkit-scrollbar-thumb { background: #493F30; border-radius: 99px; }
+
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
 
 .line-clamp-6 {
   overflow: hidden;
@@ -33,9 +78,52 @@
   -webkit-box-orient: vertical;
 }
 
-@keyframes glow {
-  0%, 100% { box-shadow: 0 0 6px 0 rgba(52,211,153,.4); }
-  50%       { box-shadow: 0 0 14px 2px rgba(52,211,153,.65); }
+.font-serif { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; }
+
+/* -- Grano fotográfico ambiental, muy sutil, sobre toda la app -- */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.nav-glow { animation: glow 2.4s ease-in-out infinite; }
-.font-serif { font-family: 'Instrument Serif', Georgia, serif; }
+
+/* -- Vidrio esmerilado: la firma visual repetida en toda la app - */
+.glass {
+  background: linear-gradient(160deg, rgba(248,243,232,0.06), rgba(248,243,232,0.02));
+  border: 1px solid rgba(248,243,232,0.09);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.glass-strong {
+  background: linear-gradient(165deg, rgba(29,23,18,0.86), rgba(16,12,9,0.92));
+  border: 1px solid rgba(248,243,232,0.10);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+}
+
+/* -- Sello destello: la marca que aparece en login, navbar y ---- */
+/* -- encabezados de página --------------------------------------- */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 8px 0 rgba(222,180,80,.35); }
+  50%       { box-shadow: 0 0 18px 3px rgba(222,180,80,.55); }
+}
+.nav-glow { animation: glow 3s ease-in-out infinite; }
+
+@keyframes sparkle-spin {
+  0%   { transform: rotate(0deg) scale(1); }
+  50%  { transform: rotate(180deg) scale(1.12); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.sparkle-spin { animation: sparkle-spin 8s linear infinite; }
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(2%, -3%); }
+}
+.drift-slow { animation: drift 22s ease-in-out infinite; }
+.drift-slower { animation: drift 30s ease-in-out infinite reverse; }

@@ -38,7 +38,7 @@ export function Modulos() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {modulos.map(m => (
             <Link key={m.id} to={`/modulos/${m.id}`}>
-              <div className="group bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-700 hover:bg-gray-900/80 transition-all duration-200 cursor-pointer">
+              <div className="group bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-5 hover:border-gray-700 hover:bg-gray-900/80 transition-all duration-200 cursor-pointer">
                 <div className="text-sm font-semibold text-gray-100 group-hover:text-emerald-400 transition-colors duration-150">
                   {m.nombre}
                 </div>

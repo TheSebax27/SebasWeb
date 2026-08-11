@@ -119,7 +119,7 @@ export function Gym() {
       />
 
       {showFR && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-5 flex flex-col gap-4 max-w-sm">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-5 mb-5 flex flex-col gap-4 max-w-sm">
           <Field label="Nombre de la rutina">
             <input className={inputCls} placeholder="Ej. PPL, Full Body..." autoFocus
               value={formR.nombre} onChange={e=>setFormR({...formR,nombre:e.target.value})} onKeyDown={e=>e.key==='Enter'&&crearRutina()} />
@@ -137,7 +137,7 @@ export function Gym() {
         {rutinas.map(r=>{
           const sel=r.id===rutinaSelId;
           return (
-            <div key={r.id} className={`bg-gray-900 rounded-xl border transition-colors duration-200 overflow-hidden ${sel?'border-emerald-900':'border-gray-800'}`}>
+            <div key={r.id} className={`bg-gray-900/70 backdrop-blur-sm rounded-xl border transition-colors duration-200 overflow-hidden ${sel?'border-emerald-900':'border-gray-800'}`}>
               {/* Rutina header */}
               <div className="flex items-center px-5 py-4 cursor-pointer hover:bg-gray-800/50 transition-colors gap-3" onClick={()=>selRutina(r.id)}>
                 <span className="text-xs text-gray-600">{sel?'▾':'▸'}</span>

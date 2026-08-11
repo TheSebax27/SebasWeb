@@ -109,7 +109,7 @@ export function Finanzas() {
 
       {/* Panel categorías */}
       {showCats && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6 flex flex-col gap-4">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-5 mb-6 flex flex-col gap-4">
           <p className="text-xs font-semibold text-gray-400">Categorías</p>
           <div className="flex flex-col gap-1.5">
             {cats.length===0 && <p className="text-xs text-gray-600">Sin categorías todavía.</p>}
@@ -152,7 +152,7 @@ export function Finanzas() {
 
       {/* Form nueva transacción */}
       {showTx && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6 flex flex-col gap-4 max-w-md">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-5 mb-6 flex flex-col gap-4 max-w-md">
           {/* Toggle ingreso/gasto */}
           <div className="grid grid-cols-2 rounded-lg overflow-hidden border border-gray-700">
             {(['gasto','ingreso'] as TipoTransaccion[]).map(t=>(
@@ -204,7 +204,7 @@ export function Finanzas() {
       {!cargando && porFecha.map(({fecha,items})=>(
         <div key={fecha} className="mb-4">
           <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-600 mb-2">{fmtFecha(fecha)}</p>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl overflow-hidden">
             {items.map((tx,i)=>{
               const cat=tx.categorias_finanzas;
               const esI=tx.tipo==='ingreso';

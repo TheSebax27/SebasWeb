@@ -61,7 +61,7 @@ export function ModuloDetalle() {
       <PageHeader num="01 / MÓDULOS" title={modulo.nombre} sub={modulo.descripcion ?? undefined} />
 
       {perfil?.rol === 'admin' && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-8 max-w-md flex flex-col gap-4">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-5 mb-8 max-w-md flex flex-col gap-4">
           <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Agregar foto</p>
           <Field label="Descripción (opcional)">
             <input className={inputCls} type="text" placeholder="Ej. Vista frontal" value={descripcion} onChange={e => setDescripcion(e.target.value)} />
@@ -86,7 +86,7 @@ export function ModuloDetalle() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {fotos.map(f => (
-            <div key={f.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden group">
+            <div key={f.id} className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl overflow-hidden group">
               <img src={f.url_publica ?? ''} alt={f.descripcion ?? modulo.nombre}
                 className="w-full object-cover aspect-square" />
               {f.descripcion && (

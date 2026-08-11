@@ -16,8 +16,13 @@ import { Entretenimiento } from './pages/Entretenimiento';
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <div className="grain" />
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="drift-slow absolute -top-32 left-1/4 w-[36rem] h-[36rem] bg-emerald-500/[0.04] rounded-full blur-3xl" />
+        <div className="drift-slower absolute top-1/2 -right-20 w-[28rem] h-[28rem] bg-emerald-500/[0.03] rounded-full blur-3xl" />
+      </div>
       <Navbar />
-      <main>{children}</main>
+      <main className="relative z-10">{children}</main>
     </>
   );
 }

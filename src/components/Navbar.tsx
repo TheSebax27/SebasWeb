@@ -1,14 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient';
+import { Icon, SparkleSeal, Wordmark } from './UI';
 
 const LINKS = [
-  { to: '/',                num: '01', label: 'Módulos' },
-  { to: '/finanzas',        num: '02', label: 'Finanzas' },
-  { to: '/metas',           num: '03', label: 'Metas' },
-  { to: '/gym',             num: '04', label: 'Gym' },
-  { to: '/notas',           num: '05', label: 'Notas' },
-  { to: '/entretenimiento', num: '06', label: 'Entretenimiento' },
+  { to: '/',                label: 'Módulos' },
+  { to: '/finanzas',        label: 'Finanzas' },
+  { to: '/metas',           label: 'Metas' },
+  { to: '/gym',             label: 'Gym' },
+  { to: '/notas',           label: 'Notas' },
+  { to: '/entretenimiento', label: 'Entretenimiento' },
 ];
 
 export default function Navbar() {
@@ -20,58 +21,83 @@ export default function Navbar() {
     navigate('/login');
   }
 
+  const iniciales = (perfil?.nombre ?? perfil?.email ?? '?').trim().charAt(0).toUpperCase();
+
   return (
-    <nav className="sticky top-0 z-50 h-13 flex items-center gap-0 px-4 sm:px-6 bg-gray-950/90 backdrop-blur-md border-b border-gray-800">
-      {/* Brand */}
-      <div className="flex items-center justify-center w-7 h-7 rounded-md bg-emerald-500 text-gray-950 text-xs font-bold mr-5 shrink-0 nav-glow">
-        S
-      </div>
+    <nav className="sticky top-0 z-50 glass-strong border-b border-gray-800/80">
+      <div className="max-w-6xl mx-auto flex items-center gap-1 h-16 px-4 sm:px-6">
+        {/* Marca */}
+        <div className="flex items-center gap-2.5 mr-6 shrink-0">
+          <SparkleSeal size="sm" />
+          <Wordmark size="sm" />
+        </div>
 
-      {/* Links */}
-      <div className="flex items-stretch gap-0 h-full flex-1 overflow-x-auto scrollbar-none">
-        {LINKS.map(l => (
-          <NavLink
-            key={l.to}
-            to={l.to}
-            end={l.to === '/'}
-            className={({ isActive }) =>
-              `flex items-center px-3 text-[11px] font-medium tracking-wider uppercase border-b-2 whitespace-nowrap transition-colors duration-150 ${
-                isActive
-                  ? 'text-emerald-400 border-emerald-500'
-                  : 'text-gray-500 border-transparent hover:text-gray-300 hover:border-gray-700'
-              }`
-            }
-          >
-            <span className="text-[9px] font-normal text-gray-600 mr-1">{l.num}</span>
-            {l.label}
-          </NavLink>
-        ))}
-        {perfil?.rol === 'admin' && (
-          <NavLink
-            to="/usuarios"
-            className={({ isActive }) =>
-              `flex items-center px-3 text-[11px] font-medium tracking-wider uppercase border-b-2 whitespace-nowrap transition-colors duration-150 ${
-                isActive
-                  ? 'text-emerald-400 border-emerald-500'
-                  : 'text-gray-500 border-transparent hover:text-gray-300 hover:border-gray-700'
-              }`
-            }
-          >
-            <span className="text-[9px] font-normal text-gray-600 mr-1">07</span>
-            Usuarios
-          </NavLink>
-        )}
-      </div>
+        <div className="hidden sm:block w-px h-6 bg-gray-800 mr-2 shrink-0" />
 
-      {/* Right */}
-      <div className="flex items-center gap-3 ml-4 shrink-0">
-        <span className="hidden sm:block text-xs text-gray-600">{perfil?.nombre ?? perfil?.email}</span>
-        <button
-          onClick={logout}
-          className="text-[11px] text-gray-600 hover:text-gray-300 transition-colors duration-150 cursor-pointer"
-        >
-          Salir
-        </button>
+        {/* Enlaces */}
+        <div className="flex items-stretch gap-0.5 h-full flex-1 overflow-x-auto scrollbar-none">
+          {LINKS.map(l => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.to === '/'}
+              className={({ isActive }) =>
+                `relative flex items-center px-3 text-[12px] font-medium tracking-wide whitespace-nowrap transition-colors duration-150 ${
+                  isActive ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-200'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {l.label}
+                  <span
+                    className={`absolute left-3 right-3 -bottom-px h-[2px] rounded-full bg-emerald-500 transition-transform duration-200 origin-left ${
+                      isActive ? 'scale-x-100' : 'scale-x-0'
+                    }`}
+                  />
+                </>
+              )}
+            </NavLink>
+          ))}
+          {perfil?.rol === 'admin' && (
+            <NavLink
+              to="/usuarios"
+              className={({ isActive }) =>
+                `relative flex items-center px-3 text-[12px] font-medium tracking-wide whitespace-nowrap transition-colors duration-150 ${
+                  isActive ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-200'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  Usuarios
+                  <span
+                    className={`absolute left-3 right-3 -bottom-px h-[2px] rounded-full bg-emerald-500 transition-transform duration-200 origin-left ${
+                      isActive ? 'scale-x-100' : 'scale-x-0'
+                    }`}
+                  />
+                </>
+              )}
+            </NavLink>
+          )}
+        </div>
+
+        {/* Usuario */}
+        <div className="flex items-center gap-3 ml-4 shrink-0">
+          <div className="hidden sm:flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-emerald-950 border border-emerald-800 flex items-center justify-center text-[11px] font-semibold text-emerald-400">
+              {iniciales}
+            </div>
+            <span className="text-xs text-gray-400 max-w-[140px] truncate">{perfil?.nombre ?? perfil?.email}</span>
+          </div>
+          <button
+            onClick={logout}
+            title="Cerrar sesión"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-600 hover:text-rose-400 hover:bg-rose-950/40 transition-colors duration-150 cursor-pointer"
+          >
+            <Icon.LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </nav>
   );

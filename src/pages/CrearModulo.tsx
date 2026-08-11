@@ -22,7 +22,7 @@ export function CrearModulo() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 w-full">
       <PageHeader num="01 / MÓDULOS" title="Nuevo módulo" />
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md flex flex-col gap-5">
+      <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-6 max-w-md flex flex-col gap-5">
         <form onSubmit={manejarSubmit} className="flex flex-col gap-5">
           <Field label="Nombre">
             <input className={inputCls} placeholder="Ej. Chaqueta Sebastián" value={nombre}
