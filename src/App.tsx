@@ -12,6 +12,7 @@ import { Metas } from './pages/Metas';
 import { Gym } from './pages/Gym';
 import { Notas } from './pages/Notas';
 import { Entretenimiento } from './pages/Entretenimiento';
+import { SubmoduloDetalle } from './pages/SubmoduloDetalle';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/" element={<AuthRoute><Modulos /></AuthRoute>} />
           <Route path="/modulos/nuevo" element={<AdminRoute><CrearModulo /></AdminRoute>} />
           <Route path="/modulos/:id" element={<AuthRoute><ModuloDetalle /></AuthRoute>} />
+          <Route path="/modulos/:id/submodulos/:subId" element={<AuthRoute><SubmoduloDetalle /></AuthRoute>} />
           <Route path="/finanzas" element={<AdminRoute><Finanzas /></AdminRoute>} />
           <Route path="/metas" element={<AdminRoute><Metas /></AdminRoute>} />
           <Route path="/gym" element={<AdminRoute><Gym /></AdminRoute>} />

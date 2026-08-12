@@ -99,6 +99,27 @@ export interface Nota {
   actualizado_en: string;
 }
 
+// Sub-módulos
+export interface Submodulo {
+  id: string;
+  modulo_id: string;
+  nombre: string;
+  descripcion: string | null;
+  drive_folder_id: string;
+  creado_por: string;
+  creado_en: string;
+}
+
+export interface SubmoduloFoto {
+  id: string;
+  submodulo_id: string;
+  drive_file_id: string;
+  url_publica: string | null;
+  descripcion: string | null;
+  orden: number;
+  creado_en: string;
+}
+
 // Entretenimiento
 export type TipoEntretenimiento = 'pelicula' | 'serie' | 'juego';
 export type EstadoEntretenimiento = 'visto' | 'quiero' | 'en_progreso';

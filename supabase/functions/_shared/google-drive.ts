@@ -65,6 +65,33 @@ export async function crearCarpetaModulo(nombre: string): Promise<string> {
   return data.id as string;
 }
 
+export async function crearSubcarpeta(parentFolderId: string, nombre: string): Promise<string> {
+  const token = await obtenerAccessToken();
+
+  const resp = await fetch(
+    "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: nombre,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [parentFolderId],
+      }),
+    },
+  );
+
+  if (!resp.ok) {
+    throw new Error(`Error creando subcarpeta en Drive: ${await resp.text()}`);
+  }
+
+  const data = await resp.json();
+  return data.id as string;
+}
+
 export async function subirArchivoADrive(
   carpetaId: string,
   nombreArchivo: string,
