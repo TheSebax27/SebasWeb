@@ -691,13 +691,26 @@ export function Finanzas() {
               </Field>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="Monto total">
-                  <input className={inputCls} type="number" placeholder="0.00" value={formCr.monto_total} onChange={e=>setFormCr({...formCr,monto_total:e.target.value})} />
+                  <input className={inputCls} type="number" placeholder="0.00" value={formCr.monto_total}
+                    onChange={e=>{
+                      const mt=e.target.value;
+                      const cuota = mt && formCr.cuotas_total && +formCr.cuotas_total>0
+                        ? String((+mt / +formCr.cuotas_total).toFixed(2)) : formCr.monto_cuota;
+                      setFormCr({...formCr, monto_total:mt, monto_cuota:cuota});
+                    }} />
                 </Field>
                 <Field label="Nº cuotas">
-                  <input className={inputCls} type="number" placeholder="12" value={formCr.cuotas_total} onChange={e=>setFormCr({...formCr,cuotas_total:e.target.value})} />
+                  <input className={inputCls} type="number" placeholder="12" value={formCr.cuotas_total}
+                    onChange={e=>{
+                      const nc=e.target.value;
+                      const cuota = nc && +nc>0 && formCr.monto_total
+                        ? String((+formCr.monto_total / +nc).toFixed(2)) : formCr.monto_cuota;
+                      setFormCr({...formCr, cuotas_total:nc, monto_cuota:cuota});
+                    }} />
                 </Field>
                 <Field label="Valor cuota">
-                  <input className={inputCls} type="number" placeholder="0.00" value={formCr.monto_cuota} onChange={e=>setFormCr({...formCr,monto_cuota:e.target.value})} />
+                  <input className={inputCls} type="number" placeholder="0.00" value={formCr.monto_cuota}
+                    onChange={e=>setFormCr({...formCr,monto_cuota:e.target.value})} />
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
