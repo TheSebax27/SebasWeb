@@ -99,6 +99,23 @@ export interface Nota {
   actualizado_en: string;
 }
 
+// Préstamos
+export type TipoPrestamo = 'prestado' | 'recibido';
+export type EstadoPrestamo = 'pendiente' | 'parcial' | 'saldado';
+
+export interface Prestamo {
+  id: string;
+  tipo: TipoPrestamo;
+  persona: string;
+  monto: number;
+  descripcion: string | null;
+  fecha: string;
+  estado: EstadoPrestamo;
+  monto_devuelto: number;
+  fecha_devolucion: string | null;
+  creado_en: string;
+}
+
 // Sub-módulos
 export interface Submodulo {
   id: string;
