@@ -63,10 +63,26 @@ interface CardProps {
   onCambiarPortada: (itemId: string, file: File, tipo: string) => void;
   onEstado: (item: EntretenimientoItem, estado: EstadoEntretenimiento) => void;
   onRating: (item: EntretenimientoItem, rating: number) => void;
+  onRenombrar: (item: EntretenimientoItem, nuevoTitulo: string) => void;
 }
 
-function ItemCard({ item, esAdmin, subiendoPortadaId, onEliminar, onCambiarPortada, onEstado, onRating }: CardProps) {
+function ItemCard({ item, esAdmin, subiendoPortadaId, onEliminar, onCambiarPortada, onEstado, onRating, onRenombrar }: CardProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [editandoTitulo, setEditandoTitulo] = useState(false);
+  const [tituloEdit, setTituloEdit] = useState('');
+  const tituloRef = useRef<HTMLInputElement>(null);
+
+  function iniciarEditTitulo() {
+    setTituloEdit(item.titulo);
+    setEditandoTitulo(true);
+    setTimeout(() => tituloRef.current?.select(), 0);
+  }
+
+  function confirmarTitulo() {
+    const nuevo = tituloEdit.trim();
+    if (nuevo && nuevo !== item.titulo) onRenombrar(item, nuevo);
+    setEditandoTitulo(false);
+  }
 
   return (
     <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 hover:border-gray-700 rounded-xl overflow-hidden flex flex-col group transition-colors">
@@ -123,7 +139,25 @@ function ItemCard({ item, esAdmin, subiendoPortadaId, onEliminar, onCambiarPorta
 
       {/* Info */}
       <div className="p-2.5 flex flex-col gap-1.5 flex-1">
-        <div className="text-xs font-semibold text-gray-100 leading-snug line-clamp-2">{item.titulo}</div>
+        {editandoTitulo ? (
+          <input
+            ref={tituloRef}
+            className="w-full bg-gray-800 border border-emerald-700 rounded px-1.5 py-0.5 text-xs font-semibold text-gray-100 outline-none"
+            value={tituloEdit}
+            onChange={e => setTituloEdit(e.target.value)}
+            onBlur={confirmarTitulo}
+            onKeyDown={e => { if (e.key === 'Enter') confirmarTitulo(); if (e.key === 'Escape') setEditandoTitulo(false); }}
+            autoFocus
+          />
+        ) : (
+          <div
+            className={`text-xs font-semibold text-gray-100 leading-snug line-clamp-2 ${esAdmin ? 'cursor-text hover:text-emerald-300 transition-colors' : ''}`}
+            onClick={esAdmin ? iniciarEditTitulo : undefined}
+            title={esAdmin ? 'Clic para editar título' : undefined}
+          >
+            {item.titulo}
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-1 flex-wrap">
           <Estrellas rating={item.rating} onChange={esAdmin ? v => onRating(item, v) : undefined} />
@@ -264,6 +298,11 @@ export function Entretenimiento() {
     setItems(p => p.map(i => i.id === item.id ? { ...i, rating } : i));
   }
 
+  async function actualizarTitulo(item: EntretenimientoItem, titulo: string) {
+    await supabase.from('entretenimiento').update({ titulo }).eq('id', item.id);
+    setItems(p => p.map(i => i.id === item.id ? { ...i, titulo } : i));
+  }
+
   async function eliminar() {
     if (!confirm) return;
     if (confirm.drive_file_id) {
@@ -290,6 +329,7 @@ export function Entretenimiento() {
     onCambiarPortada: (id, file, tipo) => cambiarPortadaCard(id, file, tipo),
     onEstado: actualizarEstado,
     onRating: actualizarRating,
+    onRenombrar: actualizarTitulo,
   };
 
   return (
