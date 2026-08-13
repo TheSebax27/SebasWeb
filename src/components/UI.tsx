@@ -50,6 +50,30 @@ export const Icon = {
       <path d="M9.5 12.5l1.8 1.8L14.7 10" />
     </svg>
   ),
+  Pencil: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z" />
+    </svg>
+  ),
+  Trash: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  ),
+  Check: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  X: (p: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  ),
 };
 
 /* ── Brand: sello + wordmark, se repite en login, navbar y ────── */
@@ -189,6 +213,45 @@ export function Card({ children, className = '' }: { children: React.ReactNode; 
   return (
     <div className={`glass rounded-xl ${className}`}>
       {children}
+    </div>
+  );
+}
+
+/* ── ConfirmDialog ──────────────────────────────────────────── */
+interface ConfirmDialogProps {
+  open: boolean;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+export function ConfirmDialog({ open, title, message, confirmLabel = 'Eliminar', onConfirm, onCancel }: ConfirmDialogProps) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-gray-950/75 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-9 h-9 rounded-full bg-rose-950/60 border border-rose-900 flex items-center justify-center shrink-0">
+            <Icon.Trash className="w-4 h-4 text-rose-400" />
+          </div>
+          <h3 className="font-semibold text-gray-100 leading-snug">{title}</h3>
+        </div>
+        <p className="text-sm text-gray-400 mb-6 pl-12 leading-relaxed">{message}</p>
+        <div className="flex gap-2 justify-end">
+          <Btn variant="ghost" size="sm" onClick={onCancel}>Cancelar</Btn>
+          <Btn
+            variant="ghost"
+            size="sm"
+            onClick={onConfirm}
+            className="!text-rose-400 !border-rose-900 hover:!bg-rose-950 hover:!text-rose-300"
+          >
+            {confirmLabel}
+          </Btn>
+        </div>
+      </div>
     </div>
   );
 }
