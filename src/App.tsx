@@ -44,21 +44,35 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
+function SeccionRoute({ children, seccion }: { children: React.ReactNode; seccion: 'galeria'|'finanzas'|'metas'|'gym'|'notas'|'entretenimiento' }) {
+  return (
+    <ProtectedRoute seccion={seccion}>
+      <Layout>{children}</Layout>
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<AuthRoute><Modulos /></AuthRoute>} />
+
+          {/* Galería/Módulos — accesible según permiso "galeria" */}
+          <Route path="/" element={<SeccionRoute seccion="galeria"><Modulos /></SeccionRoute>} />
           <Route path="/modulos/nuevo" element={<AdminRoute><CrearModulo /></AdminRoute>} />
-          <Route path="/modulos/:id" element={<AuthRoute><ModuloDetalle /></AuthRoute>} />
-          <Route path="/modulos/:id/submodulos/:subId" element={<AuthRoute><SubmoduloDetalle /></AuthRoute>} />
-          <Route path="/finanzas" element={<AdminRoute><Finanzas /></AdminRoute>} />
-          <Route path="/metas" element={<AdminRoute><Metas /></AdminRoute>} />
-          <Route path="/gym" element={<AdminRoute><Gym /></AdminRoute>} />
-          <Route path="/notas" element={<AdminRoute><Notas /></AdminRoute>} />
-          <Route path="/entretenimiento" element={<AdminRoute><Entretenimiento /></AdminRoute>} />
+          <Route path="/modulos/:id" element={<SeccionRoute seccion="galeria"><ModuloDetalle /></SeccionRoute>} />
+          <Route path="/modulos/:id/submodulos/:subId" element={<SeccionRoute seccion="galeria"><SubmoduloDetalle /></SeccionRoute>} />
+
+          {/* Secciones con permiso granular */}
+          <Route path="/finanzas"        element={<SeccionRoute seccion="finanzas"><Finanzas /></SeccionRoute>} />
+          <Route path="/metas"           element={<SeccionRoute seccion="metas"><Metas /></SeccionRoute>} />
+          <Route path="/gym"             element={<SeccionRoute seccion="gym"><Gym /></SeccionRoute>} />
+          <Route path="/notas"           element={<SeccionRoute seccion="notas"><Notas /></SeccionRoute>} />
+          <Route path="/entretenimiento" element={<SeccionRoute seccion="entretenimiento"><Entretenimiento /></SeccionRoute>} />
+
+          {/* Solo admin */}
           <Route path="/usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
         </Routes>
       </BrowserRouter>

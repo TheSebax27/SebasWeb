@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Transaccion, CategoriaFinanzas, TipoTransaccion, Prestamo, TipoPrestamo, EstadoPrestamo } from '../types';
+import { Transaccion, CategoriaFinanzas, TipoTransaccion, Prestamo, TipoPrestamo, EstadoPrestamo, Credito, TipoCredito } from '../types';
 import { PageHeader, Btn, Field, StatTile, EmptyState, ConfirmDialog, inputCls, selectCls } from '../components/UI';
 
 /* ── Helpers ── */
@@ -14,13 +14,28 @@ function hoyIso() { return new Date().toISOString().slice(0,10); }
 const TX0  = { tipo: 'gasto' as TipoTransaccion, categoria_id: '', monto: '', descripcion: '', fecha: hoyIso() };
 const CAT0 = { nombre: '', tipo: 'gasto' as 'ingreso'|'gasto'|'ambos', emoji: '' };
 const PR0  = { tipo: 'prestado' as TipoPrestamo, persona: '', monto: '', descripcion: '', fecha: hoyIso() };
+const CR0  = { nombre: '', entidad: '', tipo: 'credito' as TipoCredito, monto_total: '', cuotas_total: '', monto_cuota: '', tasa_interes: '', fecha_inicio: hoyIso(), fecha_proximo_pago: '', descripcion: '' };
+
+/* ── Helpers de créditos ── */
+function diasHasta(iso: string): number {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  return Math.round((new Date(iso).getTime() - hoy.getTime()) / 86400000);
+}
+function sumarMes(iso: string): string {
+  const d = new Date(iso);
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0,10);
+}
+const TIPO_CREDITO_LABEL: Record<TipoCredito, string> = {
+  credito: '🏦 Crédito', tarjeta: '💳 Tarjeta', hipoteca: '🏠 Hipoteca', vehiculo: '🚗 Vehículo', otro: '📄 Otro',
+};
 
 /* ── Componente ── */
 export function Finanzas() {
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
   const [mes,  setMes]  = useState(hoy.getMonth());
-  const [tab,  setTab]  = useState<'movimientos'|'prestamos'>('movimientos');
+  const [tab,  setTab]  = useState<'movimientos'|'prestamos'|'creditos'>('movimientos');
 
   /* Transacciones */
   const [txs,     setTxs]     = useState<Transaccion[]>([]);
@@ -49,6 +64,18 @@ export function Finanzas() {
   const [errDev,       setErrDev]       = useState<string|null>(null);
   const [confirmPr,    setConfirmPr]    = useState<Prestamo|null>(null);
 
+  /* Créditos */
+  const [creditos,     setCreditos]     = useState<Credito[]>([]);
+  const [cargCr,       setCargCr]       = useState(true);
+  const [showFormCr,   setShowFormCr]   = useState(false);
+  const [formCr,       setFormCr]       = useState(CR0);
+  const [guardandoCr,  setGuardandoCr]  = useState(false);
+  const [errCr,        setErrCr]        = useState<string|null>(null);
+  const [pagandoCr,    setPagandoCr]    = useState<string|null>(null);
+  const [fechaPagoCr,  setFechaPagoCr]  = useState(hoyIso());
+  const [guardandoPago,setGuardandoPago]= useState(false);
+  const [confirmCr,    setConfirmCr]    = useState<Credito|null>(null);
+
   /* ── Carga ── */
   async function cargarCats() {
     const { data } = await supabase.from('categorias_finanzas').select('*').order('nombre');
@@ -68,7 +95,13 @@ export function Finanzas() {
     setPrestamos((data as Prestamo[]) ?? []); setCargPr(false);
   }
 
-  useEffect(() => { cargarCats(); cargarPrestamos(); }, []);
+  async function cargarCreditos() {
+    setCargCr(true);
+    const { data } = await supabase.from('creditos').select('*').order('creado_en', { ascending: false });
+    setCreditos((data as Credito[]) ?? []); setCargCr(false);
+  }
+
+  useEffect(() => { cargarCats(); cargarPrestamos(); cargarCreditos(); }, []);
   useEffect(() => { cargarTxs(); }, [anio, mes]);
 
   function mesPrev() { if(mes===0){setMes(11);setAnio(a=>a-1);}else setMes(m=>m-1); }
@@ -194,6 +227,64 @@ export function Finanzas() {
     if(!confirmPr) return;
     await supabase.from('prestamos').delete().eq('id', confirmPr.id);
     setConfirmPr(null); cargarPrestamos();
+  }
+
+  /* ── Créditos CRUD ── */
+  async function crearCredito() {
+    if(!formCr.nombre.trim()){setErrCr('El nombre es obligatorio');return;}
+    if(!formCr.monto_total||+formCr.monto_total<=0){setErrCr('El monto total debe ser mayor a 0');return;}
+    if(!formCr.cuotas_total||+formCr.cuotas_total<=0){setErrCr('Las cuotas deben ser mayor a 0');return;}
+    if(!formCr.monto_cuota||+formCr.monto_cuota<=0){setErrCr('El monto de cuota debe ser mayor a 0');return;}
+    setGuardandoCr(true); setErrCr(null);
+
+    const proximo = formCr.fecha_proximo_pago || sumarMes(formCr.fecha_inicio);
+    const { error } = await supabase.from('creditos').insert({
+      nombre: formCr.nombre.trim(),
+      entidad: formCr.entidad.trim() || null,
+      tipo: formCr.tipo,
+      monto_total: parseFloat(formCr.monto_total),
+      cuotas_total: parseInt(formCr.cuotas_total),
+      monto_cuota: parseFloat(formCr.monto_cuota),
+      tasa_interes: formCr.tasa_interes ? parseFloat(formCr.tasa_interes) : null,
+      fecha_inicio: formCr.fecha_inicio,
+      fecha_proximo_pago: proximo,
+      descripcion: formCr.descripcion.trim() || null,
+    });
+    setGuardandoCr(false);
+    if(error){setErrCr(error.message);return;}
+    setFormCr(CR0); setShowFormCr(false); cargarCreditos();
+  }
+
+  async function registrarPago(cr: Credito) {
+    setGuardandoPago(true);
+    const nuevasCuotas = cr.cuotas_pagadas + 1;
+    const saldado = nuevasCuotas >= cr.cuotas_total;
+    const nuevoProximo = saldado ? cr.fecha_proximo_pago : sumarMes(cr.fecha_proximo_pago ?? hoyIso());
+
+    await supabase.from('creditos').update({
+      cuotas_pagadas: nuevasCuotas,
+      estado: saldado ? 'pagado' : 'activo',
+      fecha_proximo_pago: nuevoProximo,
+    }).eq('id', cr.id);
+
+    // Transacción automática de gasto
+    await supabase.from('transacciones').insert({
+      tipo: 'gasto',
+      categoria_id: null,
+      monto: +cr.monto_cuota,
+      descripcion: `${TIPO_CREDITO_LABEL[cr.tipo]} ${cr.nombre} — cuota ${nuevasCuotas}/${cr.cuotas_total}`,
+      fecha: fechaPagoCr,
+    });
+
+    setGuardandoPago(false);
+    setPagandoCr(null); setFechaPagoCr(hoyIso());
+    cargarCreditos(); cargarTxs();
+  }
+
+  async function eliminarCredito() {
+    if(!confirmCr) return;
+    await supabase.from('creditos').delete().eq('id', confirmCr.id);
+    setConfirmCr(null); cargarCreditos();
   }
 
   /* ── Agrupación de transacciones por fecha ── */
@@ -331,9 +422,13 @@ export function Finanzas() {
                 {showTx ? 'Cancelar' : '+ Agregar'}
               </Btn>
             </>
-          ) : (
+          ) : tab === 'prestamos' ? (
             <Btn variant="primary" size="sm" onClick={()=>{setShowFormPr(f=>!f);setErrPr(null);}}>
               {showFormPr ? 'Cancelar' : '+ Nuevo préstamo'}
+            </Btn>
+          ) : (
+            <Btn variant="primary" size="sm" onClick={()=>{setShowFormCr(f=>!f);setErrCr(null);}}>
+              {showFormCr ? 'Cancelar' : '+ Nuevo crédito'}
             </Btn>
           )
         }
@@ -341,19 +436,19 @@ export function Finanzas() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-900/50 p-1 rounded-xl border border-gray-800 mb-6">
-        <button onClick={()=>setTab('movimientos')}
-          className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all cursor-pointer ${tab==='movimientos'?'bg-gray-800 text-gray-100 shadow-sm':'text-gray-600 hover:text-gray-400'}`}>
-          Movimientos
-        </button>
-        <button onClick={()=>setTab('prestamos')}
-          className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 ${tab==='prestamos'?'bg-gray-800 text-gray-100 shadow-sm':'text-gray-600 hover:text-gray-400'}`}>
-          Préstamos
-          {prestamosActivos > 0 && (
-            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-gray-950 text-[9px] font-bold">
-              {prestamosActivos}
-            </span>
-          )}
-        </button>
+        {[
+          { key: 'movimientos', label: 'Movimientos', badge: 0 },
+          { key: 'prestamos',   label: 'Préstamos',   badge: prestamosActivos },
+          { key: 'creditos',    label: 'Créditos',    badge: creditos.filter(c=>c.estado==='activo' && c.fecha_proximo_pago && diasHasta(c.fecha_proximo_pago)<=5).length },
+        ].map(t=>(
+          <button key={t.key} onClick={()=>setTab(t.key as typeof tab)}
+            className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${tab===t.key?'bg-gray-800 text-gray-100 shadow-sm':'text-gray-600 hover:text-gray-400'}`}>
+            {t.label}
+            {t.badge > 0 && (
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-gray-950 text-[9px] font-bold">{t.badge}</span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* ══ TAB MOVIMIENTOS ══ */}
@@ -573,6 +668,175 @@ export function Finanzas() {
         </>
       )}
 
+      {/* ══ TAB CRÉDITOS ══ */}
+      {tab === 'creditos' && (
+        <>
+          {/* Formulario nuevo crédito */}
+          {showFormCr && (
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-5 mb-6 flex flex-col gap-4 max-w-md">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nombre / apodo">
+                  <input className={inputCls} placeholder="Ej. Crédito carro" value={formCr.nombre} onChange={e=>setFormCr({...formCr,nombre:e.target.value})} autoFocus />
+                </Field>
+                <Field label="Entidad (opcional)">
+                  <input className={inputCls} placeholder="Banco, financiera..." value={formCr.entidad} onChange={e=>setFormCr({...formCr,entidad:e.target.value})} />
+                </Field>
+              </div>
+              <Field label="Tipo">
+                <select className={selectCls} value={formCr.tipo} onChange={e=>setFormCr({...formCr,tipo:e.target.value as TipoCredito})}>
+                  {(Object.entries(TIPO_CREDITO_LABEL) as [TipoCredito,string][]).map(([k,v])=>(
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </Field>
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Monto total">
+                  <input className={inputCls} type="number" placeholder="0.00" value={formCr.monto_total} onChange={e=>setFormCr({...formCr,monto_total:e.target.value})} />
+                </Field>
+                <Field label="Nº cuotas">
+                  <input className={inputCls} type="number" placeholder="12" value={formCr.cuotas_total} onChange={e=>setFormCr({...formCr,cuotas_total:e.target.value})} />
+                </Field>
+                <Field label="Valor cuota">
+                  <input className={inputCls} type="number" placeholder="0.00" value={formCr.monto_cuota} onChange={e=>setFormCr({...formCr,monto_cuota:e.target.value})} />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Tasa interés % anual (opcional)">
+                  <input className={inputCls} type="number" placeholder="12.5" value={formCr.tasa_interes} onChange={e=>setFormCr({...formCr,tasa_interes:e.target.value})} />
+                </Field>
+                <Field label="Fecha inicio">
+                  <input className={inputCls} type="date" value={formCr.fecha_inicio} onChange={e=>setFormCr({...formCr,fecha_inicio:e.target.value})} />
+                </Field>
+              </div>
+              <Field label="Primer pago (se auto-calcula si no lo llenas)">
+                <input className={inputCls} type="date" value={formCr.fecha_proximo_pago} onChange={e=>setFormCr({...formCr,fecha_proximo_pago:e.target.value})} />
+              </Field>
+              <Field label="Descripción (opcional)">
+                <input className={inputCls} placeholder="Ej. Para compra de equipo..." value={formCr.descripcion} onChange={e=>setFormCr({...formCr,descripcion:e.target.value})} />
+              </Field>
+              {errCr && <p className="text-xs text-rose-400">{errCr}</p>}
+              <Btn variant="primary" onClick={crearCredito} disabled={guardandoCr}>{guardandoCr?'Guardando...':'Registrar crédito'}</Btn>
+            </div>
+          )}
+
+          {cargCr && <p className="text-sm text-gray-600">Cargando...</p>}
+          {!cargCr && creditos.length === 0 && <EmptyState message="No hay créditos registrados." />}
+
+          {/* Activos */}
+          {creditos.filter(c=>c.estado==='activo').length > 0 && (
+            <div className="mb-6 flex flex-col gap-3">
+              <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Activos</p>
+              {creditos.filter(c=>c.estado==='activo').map(cr=>{
+                const pct = Math.round((cr.cuotas_pagadas / cr.cuotas_total) * 100);
+                const pendienteCuotas = cr.cuotas_total - cr.cuotas_pagadas;
+                const dias = cr.fecha_proximo_pago ? diasHasta(cr.fecha_proximo_pago) : null;
+                const vencido  = dias !== null && dias < 0;
+                const urgente  = dias !== null && dias >= 0 && dias <= 5;
+                const pagando  = pagandoCr === cr.id;
+
+                return (
+                  <div key={cr.id} className={`bg-gray-900/70 backdrop-blur-sm border rounded-xl overflow-hidden ${vencido?'border-rose-900':urgente?'border-amber-900/70':'border-gray-800'}`}>
+                    <div className="px-4 pt-4 pb-3 flex items-start gap-3">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 ${vencido?'bg-rose-950/60 border border-rose-900':urgente?'bg-amber-950/60 border border-amber-900':'bg-gray-800 border border-gray-700'}`}>
+                        {cr.tipo==='tarjeta'?'💳':cr.tipo==='hipoteca'?'🏠':cr.tipo==='vehiculo'?'🚗':'🏦'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-gray-100">{cr.nombre}</span>
+                          {cr.entidad&&<span className="text-[10px] text-gray-600 border border-gray-700 rounded px-1.5 py-0.5">{cr.entidad}</span>}
+                          {vencido && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-900">⚠ Vencida</span>}
+                          {urgente && !vencido && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-900">Vence en {dias}d</span>}
+                        </div>
+                        {cr.descripcion&&<p className="text-xs text-gray-500 mt-0.5">{cr.descripcion}</p>}
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                          <span className="text-[11px] text-gray-500">
+                            Cuota ${fmt(+cr.monto_cuota)} · {pendienteCuotas} restante{pendienteCuotas!==1?'s':''}
+                          </span>
+                          {cr.tasa_interes&&<span className="text-[11px] text-gray-600">{cr.tasa_interes}% anual</span>}
+                          {cr.fecha_proximo_pago&&(
+                            <span className={`text-[11px] font-medium ${vencido?'text-rose-400':urgente?'text-amber-400':'text-gray-500'}`}>
+                              Próximo: {fmtFecha(cr.fecha_proximo_pago)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-semibold text-gray-200">${fmt(+cr.monto_total)}</div>
+                        <div className="text-[11px] text-gray-500">Pendiente: ${fmt(+cr.monto_cuota * pendienteCuotas)}</div>
+                      </div>
+                    </div>
+
+                    {/* Barra de progreso */}
+                    <div className="px-4 pb-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-gray-600">{cr.cuotas_pagadas}/{cr.cuotas_total} cuotas</span>
+                        <span className="text-[10px] text-gray-600">{pct}%</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${vencido?'bg-rose-500':urgente?'bg-amber-500':'bg-emerald-500'}`} style={{width:`${pct}%`}} />
+                      </div>
+                    </div>
+
+                    {/* Pagar cuota */}
+                    <div className="px-4 pb-3 border-t border-gray-800 pt-3">
+                      {pagando ? (
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <Field label="Fecha de pago">
+                            <input className={inputCls} type="date" value={fechaPagoCr} onChange={e=>setFechaPagoCr(e.target.value)} />
+                          </Field>
+                          <div className="flex gap-2 items-end">
+                            <Btn variant="primary" size="sm" onClick={()=>registrarPago(cr)} disabled={guardandoPago}>
+                              {guardandoPago?'Guardando...':'Confirmar pago'}
+                            </Btn>
+                            <Btn variant="text" size="sm" onClick={()=>{setPagandoCr(null);setFechaPagoCr(hoyIso());}}>Cancelar</Btn>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Btn variant={vencido||urgente?'primary':'ghost'} size="sm" onClick={()=>setPagandoCr(cr.id)}>
+                            {vencido?'⚠ Pagar cuota vencida':urgente?'⏰ Pagar cuota pronto':'+ Registrar pago'}
+                          </Btn>
+                          <button onClick={()=>setConfirmCr(cr)}
+                            className="ml-auto text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
+                              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Pagados */}
+          {creditos.filter(c=>c.estado==='pagado').length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500 mb-3">✓ Saldados</p>
+              <div className="flex flex-col gap-2">
+                {creditos.filter(c=>c.estado==='pagado').map(cr=>(
+                  <div key={cr.id} className="flex items-center gap-3 bg-gray-900/60 border border-gray-800 rounded-xl px-4 py-3">
+                    <div className="text-base">{cr.tipo==='tarjeta'?'💳':cr.tipo==='hipoteca'?'🏠':cr.tipo==='vehiculo'?'🚗':'🏦'}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-300">{cr.nombre}</p>
+                      <p className="text-xs text-gray-600">{cr.cuotas_total} cuotas · ${fmt(+cr.monto_total)}</p>
+                    </div>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950/50 text-emerald-400 border border-emerald-900">Saldado</span>
+                    <button onClick={()=>setConfirmCr(cr)} className="text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Dialogs de confirmación */}
       <ConfirmDialog
         open={!!confirmTx}
@@ -587,6 +851,13 @@ export function Finanzas() {
         message="Se eliminará el registro del préstamo. Las transacciones asociadas en el historial de movimientos NO se eliminan."
         onConfirm={eliminarPrestamo}
         onCancel={()=>setConfirmPr(null)}
+      />
+      <ConfirmDialog
+        open={!!confirmCr}
+        title={`Eliminar crédito "${confirmCr?.nombre}"`}
+        message="Se eliminará el crédito permanentemente. Los movimientos ya registrados en el historial NO se eliminan."
+        onConfirm={eliminarCredito}
+        onCancel={()=>setConfirmCr(null)}
       />
     </div>
   );

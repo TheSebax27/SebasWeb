@@ -1,11 +1,52 @@
 export type Rol = 'admin' | 'visualizador';
 
+export interface PermisosUsuario {
+  pestanas: {
+    galeria: boolean;
+    finanzas: boolean;
+    metas: boolean;
+    gym: boolean;
+    notas: boolean;
+    entretenimiento: boolean;
+  };
+  modulos_todos: boolean;
+  modulos_ids: string[];
+}
+
+export const PERMISOS_DEFAULT: PermisosUsuario = {
+  pestanas: { galeria: true, finanzas: false, metas: false, gym: false, notas: false, entretenimiento: false },
+  modulos_todos: true,
+  modulos_ids: [],
+};
+
 export interface Perfil {
   id: string;
   email: string;
   nombre: string | null;
   rol: Rol;
   activo: boolean;
+  creado_en: string;
+  permisos: PermisosUsuario | null;
+}
+
+// Créditos / deudas con cuotas
+export type TipoCredito = 'credito' | 'tarjeta' | 'hipoteca' | 'vehiculo' | 'otro';
+export type EstadoCredito = 'activo' | 'pagado';
+
+export interface Credito {
+  id: string;
+  nombre: string;
+  entidad: string | null;
+  tipo: TipoCredito;
+  monto_total: number;
+  cuotas_total: number;
+  cuotas_pagadas: number;
+  monto_cuota: number;
+  tasa_interes: number | null;
+  fecha_inicio: string;
+  fecha_proximo_pago: string | null;
+  descripcion: string | null;
+  estado: EstadoCredito;
   creado_en: string;
 }
 
@@ -85,6 +126,7 @@ export interface EjercicioRutina {
   series: number;
   reps: string;
   peso_kg: number | null;
+  unidad: 'kg' | 'lbs';
   notas: string | null;
   orden: number;
 }

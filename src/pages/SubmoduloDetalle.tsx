@@ -20,13 +20,13 @@ export function SubmoduloDetalle() {
   const [archivoSeleccionado, setArchivoSeleccionado] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Editar sub-módulo
+  // Editar sub-tablero
   const [editandoSub, setEditandoSub] = useState(false);
   const [editNombre, setEditNombre] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [guardandoSub, setGuardandoSub] = useState(false);
 
-  // Eliminar sub-módulo
+  // Eliminar sub-tablero
   const [confirmEliminarSub, setConfirmEliminarSub] = useState(false);
 
   // Fotos: editar descripción / eliminar
@@ -71,7 +71,7 @@ export function SubmoduloDetalle() {
     finally { setSubiendo(false); }
   }
 
-  /* ── Editar sub-módulo ── */
+  /* ── Editar sub-tablero ── */
   function iniciarEdicion() {
     if (!submodulo) return;
     setEditNombre(submodulo.nombre);
@@ -88,7 +88,7 @@ export function SubmoduloDetalle() {
     cargarDatos();
   }
 
-  /* ── Eliminar sub-módulo ── */
+  /* ── Eliminar sub-tablero ── */
   async function eliminarSubmodulo() {
     if (!subId) return;
     await supabase.from('submodulos').delete().eq('id', subId);
@@ -123,7 +123,7 @@ export function SubmoduloDetalle() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-gray-600 mb-5">
-        <Link to="/" className="hover:text-gray-400 transition-colors">Módulos</Link>
+        <Link to="/" className="hover:text-gray-400 transition-colors">Tableros</Link>
         <span className="text-gray-700">›</span>
         <Link to={`/modulos/${id}`} className="hover:text-gray-400 transition-colors">{modulo?.nombre ?? '...'}</Link>
         <span className="text-gray-700">›</span>
@@ -133,7 +133,7 @@ export function SubmoduloDetalle() {
       {/* Header con edición inline */}
       {editandoSub ? (
         <div className="mb-8 pb-6 border-b border-gray-800 flex flex-col gap-3 max-w-lg">
-          <input className={inputCls} value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre del sub-módulo" autoFocus />
+          <input className={inputCls} value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre del sub-tablero" autoFocus />
           <textarea className={textareaCls} rows={2} value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Descripción (opcional)" />
           <div className="flex gap-2">
             <Btn variant="primary" size="sm" onClick={guardarSub} disabled={guardandoSub}>{guardandoSub ? 'Guardando...' : 'Guardar'}</Btn>
@@ -188,7 +188,7 @@ export function SubmoduloDetalle() {
 
       {/* Galería de fotos */}
       {fotos.length === 0 ? (
-        <EmptyState message="Todavía no hay fotos en este sub-módulo." />
+        <EmptyState message="Todavía no hay fotos en este sub-tablero." />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {fotos.map(f => (
@@ -241,8 +241,8 @@ export function SubmoduloDetalle() {
       {/* Dialogs de confirmación */}
       <ConfirmDialog
         open={confirmEliminarSub}
-        title={`Eliminar sub-módulo "${submodulo.nombre}"`}
-        message="Se eliminarán el sub-módulo y todas sus fotos permanentemente. Esta acción no se puede deshacer."
+        title={`Eliminar sub-tablero "${submodulo.nombre}"`}
+        message="Se eliminarán el sub-tablero y todas sus fotos permanentemente. Esta acción no se puede deshacer."
         onConfirm={eliminarSubmodulo}
         onCancel={() => setConfirmEliminarSub(false)}
       />

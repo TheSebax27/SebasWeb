@@ -34,7 +34,7 @@ export function ModuloDetalle() {
   const [fotoDescEdit, setFotoDescEdit] = useState('');
   const [confirmFoto, setConfirmFoto] = useState<ModuloFoto | null>(null);
 
-  // Sub-módulos: crear / editar / eliminar
+  // Sub-tableros: crear / editar / eliminar
   const [mostrarFormSub, setMostrarFormSub] = useState(false);
   const [subNombre, setSubNombre] = useState('');
   const [subDesc, setSubDesc] = useState('');
@@ -128,7 +128,7 @@ export function ModuloDetalle() {
     cargarDatos();
   }
 
-  /* ── Crear sub-módulo ── */
+  /* ── Crear sub-tablero ── */
   async function crearSubmodulo() {
     if (!subNombre.trim()) { setErrorSub('El nombre es obligatorio'); return; }
     const { data: { session } } = await supabase.auth.getSession();
@@ -147,7 +147,7 @@ export function ModuloDetalle() {
     finally { setCreandoSub(false); }
   }
 
-  /* ── Editar sub-módulo ── */
+  /* ── Editar sub-tablero ── */
   function iniciarEditarSub(sub: Submodulo, e: React.MouseEvent) {
     e.stopPropagation();
     setEditandoSub(sub.id);
@@ -163,7 +163,7 @@ export function ModuloDetalle() {
     cargarDatos();
   }
 
-  /* ── Eliminar sub-módulo ── */
+  /* ── Eliminar sub-tablero ── */
   async function eliminarSubmodulo() {
     if (!confirmSub) return;
     await supabase.from('submodulos').delete().eq('id', confirmSub.id);
@@ -176,13 +176,13 @@ export function ModuloDetalle() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
       <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors mb-5">
-        ← Módulos
+        ← Tableros
       </Link>
 
       {/* Header con edición inline */}
       {editandoModulo ? (
         <div className="mb-8 pb-6 border-b border-gray-800 flex flex-col gap-3 max-w-lg">
-          <input className={inputCls} value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre del módulo" autoFocus />
+          <input className={inputCls} value={editNombre} onChange={e => setEditNombre(e.target.value)} placeholder="Nombre del tablero" autoFocus />
           <textarea className={textareaCls} rows={2} value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Descripción (opcional)" />
           <div className="flex gap-2">
             <Btn variant="primary" size="sm" onClick={guardarModulo} disabled={guardandoModulo}>{guardandoModulo ? 'Guardando...' : 'Guardar'}</Btn>
@@ -216,7 +216,7 @@ export function ModuloDetalle() {
       {/* Subir foto */}
       {perfil?.rol === 'admin' && (
         <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-5 mb-8 max-w-md flex flex-col gap-4">
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Agregar foto al módulo</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Agregar foto al tablero</p>
           <Field label="Descripción (opcional)">
             <input className={inputCls} type="text" placeholder="Ej. Vista frontal" value={descripcion} onChange={e => setDescripcion(e.target.value)} />
           </Field>
@@ -288,16 +288,16 @@ export function ModuloDetalle() {
         </div>
       )}
 
-      {/* Sub-módulos */}
+      {/* Sub-tableros */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Sub-módulos</p>
+            <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Sub-tableros</p>
             <p className="text-xs text-gray-600 mt-0.5">Organiza el contenido en carpetas más específicas</p>
           </div>
           {perfil?.rol === 'admin' && (
             <Btn variant="ghost" size="sm" onClick={() => { setMostrarFormSub(f => !f); setErrorSub(null); }}>
-              {mostrarFormSub ? 'Cancelar' : '+ Nuevo sub-módulo'}
+              {mostrarFormSub ? 'Cancelar' : '+ Nuevo sub-tablero'}
             </Btn>
           )}
         </div>
@@ -311,12 +311,12 @@ export function ModuloDetalle() {
               <textarea className={textareaCls} rows={2} placeholder="Descripción breve" value={subDesc} onChange={e => setSubDesc(e.target.value)} />
             </Field>
             {errorSub && <p className="text-xs text-rose-400">{errorSub}</p>}
-            <Btn variant="primary" onClick={crearSubmodulo} disabled={creandoSub}>{creandoSub ? 'Creando carpeta...' : 'Crear sub-módulo'}</Btn>
+            <Btn variant="primary" onClick={crearSubmodulo} disabled={creandoSub}>{creandoSub ? 'Creando carpeta...' : 'Crear sub-tablero'}</Btn>
           </div>
         )}
 
         {submodulos.length === 0 && !mostrarFormSub ? (
-          <EmptyState message="No hay sub-módulos. Crea uno para organizar mejor el contenido." />
+          <EmptyState message="No hay sub-tableros. Crea uno para organizar mejor el contenido." />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {submodulos.map(sub => (
@@ -367,8 +367,8 @@ export function ModuloDetalle() {
       {/* Dialogs de confirmación */}
       <ConfirmDialog
         open={confirmEliminarModulo}
-        title={`Eliminar módulo "${modulo.nombre}"`}
-        message="Se eliminarán el módulo, todas sus fotos y todos sus sub-módulos permanentemente. Esta acción no se puede deshacer."
+        title={`Eliminar tablero "${modulo.nombre}"`}
+        message="Se eliminarán el tablero, todas sus fotos y todos sus sub-tableros permanentemente. Esta acción no se puede deshacer."
         onConfirm={eliminarModulo}
         onCancel={() => setConfirmEliminarModulo(false)}
       />
@@ -382,7 +382,7 @@ export function ModuloDetalle() {
       <ConfirmDialog
         open={!!confirmSub}
         title={`Eliminar "${confirmSub?.nombre}"`}
-        message="Se eliminarán el sub-módulo y todas sus fotos permanentemente. Esta acción no se puede deshacer."
+        message="Se eliminarán el sub-tablero y todas sus fotos permanentemente. Esta acción no se puede deshacer."
         onConfirm={eliminarSubmodulo}
         onCancel={() => setConfirmSub(null)}
       />

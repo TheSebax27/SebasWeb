@@ -8,7 +8,7 @@ import { PageHeader, Btn, EmptyState, ConfirmDialog, Icon, inputCls, textareaCls
 interface EditForm { nombre: string; descripcion: string; }
 
 export function Modulos() {
-  const { perfil } = useAuth();
+  const { perfil, puedeVerModulo } = useAuth();
   const navigate = useNavigate();
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -20,7 +20,8 @@ export function Modulos() {
 
   async function cargar() {
     const { data } = await supabase.from('modulos').select('*').order('creado_en', { ascending: false });
-    setModulos((data as Modulo[]) ?? []);
+    const todos = (data as Modulo[]) ?? [];
+    setModulos(todos.filter(m => puedeVerModulo(m.id)));
     setCargando(false);
   }
 
@@ -56,12 +57,12 @@ export function Modulos() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
       <PageHeader
-        num="01 / MÓDULOS"
-        title="Módulos"
+        num="01 / TABLEROS"
+        title="Tableros"
         sub="Galerías de contenido organizado"
         actions={
           perfil?.rol === 'admin' && (
-            <Btn variant="primary" size="sm" onClick={() => navigate('/modulos/nuevo')}>+ Nuevo módulo</Btn>
+            <Btn variant="primary" size="sm" onClick={() => navigate('/modulos/nuevo')}>+ Nuevo tablero</Btn>
           )
         }
       />
@@ -69,7 +70,7 @@ export function Modulos() {
       {cargando ? (
         <p className="text-sm text-gray-600">Cargando...</p>
       ) : modulos.length === 0 ? (
-        <EmptyState message="Todavía no hay módulos creados." />
+        <EmptyState message="Todavía no hay tableros creados." />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {modulos.map(m => (
@@ -146,7 +147,7 @@ export function Modulos() {
       <ConfirmDialog
         open={!!confirm}
         title={`Eliminar "${confirm?.nombre}"`}
-        message="Se eliminará el módulo y todas sus fotos permanentemente. Esta acción no se puede deshacer."
+        message="Se eliminará el tablero y todas sus fotos permanentemente. Esta acción no se puede deshacer."
         onConfirm={confirmarEliminacion}
         onCancel={() => setConfirm(null)}
         confirmLabel={eliminando ? 'Eliminando...' : 'Sí, eliminar'}
