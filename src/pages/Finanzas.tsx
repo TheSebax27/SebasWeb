@@ -36,6 +36,7 @@ export function Finanzas() {
   const [anio, setAnio] = useState(hoy.getFullYear());
   const [mes,  setMes]  = useState(hoy.getMonth());
   const [tab,  setTab]  = useState<'movimientos'|'prestamos'|'creditos'>('movimientos');
+  const [modoGeneral, setModoGeneral] = useState(false);
 
   /* Transacciones */
   const [txs,     setTxs]     = useState<Transaccion[]>([]);
@@ -81,12 +82,13 @@ export function Finanzas() {
     const { data } = await supabase.from('categorias_finanzas').select('*').order('nombre');
     setCats((data as CategoriaFinanzas[]) ?? []);
   }
-  async function cargarTxs() {
+  async function cargarTxs(general = modoGeneral) {
     setCargTx(true);
-    const { data } = await supabase.from('transacciones')
+    let q = supabase.from('transacciones')
       .select('*, categorias_finanzas(*)')
-      .gte('fecha', primerDia(anio,mes)).lte('fecha', ultimoDia(anio,mes))
       .order('fecha',{ascending:false}).order('creado_en',{ascending:false});
+    if (!general) q = q.gte('fecha', primerDia(anio,mes)).lte('fecha', ultimoDia(anio,mes));
+    const { data } = await q;
     setTxs((data as Transaccion[]) ?? []); setCargTx(false);
   }
   async function cargarPrestamos() {
@@ -102,7 +104,7 @@ export function Finanzas() {
   }
 
   useEffect(() => { cargarCats(); cargarPrestamos(); cargarCreditos(); }, []);
-  useEffect(() => { cargarTxs(); }, [anio, mes]);
+  useEffect(() => { cargarTxs(modoGeneral); }, [anio, mes, modoGeneral]);
 
   function mesPrev() { if(mes===0){setMes(11);setAnio(a=>a-1);}else setMes(m=>m-1); }
   function mesSig()  { if(mes===11){setMes(0);setAnio(a=>a+1);}else setMes(m=>m+1); }
@@ -530,23 +532,42 @@ export function Finanzas() {
             </div>
           )}
 
-          {/* Navegación mes */}
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <button onClick={mesPrev} className="w-8 h-8 rounded-lg border border-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-200 hover:border-gray-700 transition-colors cursor-pointer">‹</button>
-            <span className="font-serif text-xl text-gray-100 min-w-44 text-center">{MESES[mes]} {anio}</span>
-            <button onClick={mesSig} className="w-8 h-8 rounded-lg border border-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-200 hover:border-gray-700 transition-colors cursor-pointer">›</button>
+          {/* Toggle mensual / general + navegación */}
+          <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+            {/* Toggle izquierda */}
+            <div className="flex gap-1 bg-gray-900/50 p-1 rounded-xl border border-gray-800">
+              <button onClick={()=>setModoGeneral(false)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${!modoGeneral?'bg-gray-800 text-gray-100':'text-gray-600 hover:text-gray-400'}`}>
+                Mensual
+              </button>
+              <button onClick={()=>setModoGeneral(true)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${modoGeneral?'bg-gray-800 text-gray-100':'text-gray-600 hover:text-gray-400'}`}>
+                General
+              </button>
+            </div>
+
+            {/* Navegación mes (solo en modo mensual) */}
+            {!modoGeneral ? (
+              <div className="flex items-center gap-3">
+                <button onClick={mesPrev} className="w-8 h-8 rounded-lg border border-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-200 hover:border-gray-700 transition-colors cursor-pointer">‹</button>
+                <span className="font-serif text-xl text-gray-100 min-w-40 text-center">{MESES[mes]} {anio}</span>
+                <button onClick={mesSig} className="w-8 h-8 rounded-lg border border-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-200 hover:border-gray-700 transition-colors cursor-pointer">›</button>
+              </div>
+            ) : (
+              <span className="font-serif text-xl text-gray-100">Todos los movimientos</span>
+            )}
           </div>
 
           {/* Stat tiles */}
           <div className="grid grid-cols-3 gap-3 mb-8">
-            <StatTile label="Ingresos" value={`$${fmt(ingresos)}`} />
-            <StatTile label="Gastos"   value={`$${fmt(gastos)}`} />
-            <StatTile label="Balance"  value={`$${fmt(balance)}`} />
+            <StatTile label={modoGeneral ? 'Total ingresos' : 'Ingresos'} value={`$${fmt(ingresos)}`} />
+            <StatTile label={modoGeneral ? 'Total gastos'   : 'Gastos'}   value={`$${fmt(gastos)}`} />
+            <StatTile label={modoGeneral ? 'Balance total'  : 'Balance'}  value={`$${fmt(balance)}`} />
           </div>
 
           {/* Lista de transacciones */}
           {cargTx && <p className="text-sm text-gray-600">Cargando...</p>}
-          {!cargTx && txs.length===0 && <EmptyState message={`Sin movimientos en ${MESES[mes]}.`} />}
+          {!cargTx && txs.length===0 && <EmptyState message={modoGeneral ? 'Sin movimientos registrados.' : `Sin movimientos en ${MESES[mes]}.`} />}
           {!cargTx && porFecha.map(({fecha,items})=>(
             <div key={fecha} className="mb-4">
               <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-600 mb-2">{fmtFecha(fecha)}</p>
