@@ -1,11 +1,9 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Perfil, Rol, Modulo, PermisosUsuario, PERMISOS_DEFAULT } from '../types';
+import { Perfil, Rol, Modulo, PermisosUsuario, SeccionPermiso, PERMISOS_DEFAULT } from '../types';
 import { PageHeader, Btn, Field, Badge, EmptyState, inputCls, selectCls } from '../components/UI';
 
-type SeccionKey = keyof PermisosUsuario['pestanas'];
-
-const SECCIONES: { key: SeccionKey; label: string; emoji: string }[] = [
+const SECCIONES: { key: SeccionPermiso; label: string; emoji: string }[] = [
   { key: 'galeria',         label: 'Tableros',        emoji: '🗂️' },
   { key: 'finanzas',        label: 'Finanzas',        emoji: '💰' },
   { key: 'metas',           label: 'Metas',           emoji: '🎯' },
@@ -14,30 +12,32 @@ const SECCIONES: { key: SeccionKey; label: string; emoji: string }[] = [
   { key: 'entretenimiento', label: 'Entretenimiento', emoji: '🎬' },
 ];
 
-function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ value, onChange, disabled = false }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={() => onChange(!value)}
-      className={`relative w-10 h-5 rounded-full transition-colors duration-200 cursor-pointer focus:outline-none ${value ? 'bg-emerald-500' : 'bg-gray-700'}`}>
-      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${value ? 'translate-x-5' : 'translate-x-0'}`} />
+    <button type="button" onClick={() => !disabled && onChange(!value)}
+      className={`relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none ${disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'} ${value && !disabled ? 'bg-emerald-500' : 'bg-gray-700'}`}>
+      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${value && !disabled ? 'translate-x-5' : 'translate-x-0'}`} />
     </button>
   );
 }
 
 function resolverPermisos(p: Perfil): PermisosUsuario {
-  if (!p.permisos) return { ...PERMISOS_DEFAULT };
+  const src = p.permisos;
+  if (!src) return { ...PERMISOS_DEFAULT, pestanas: { ...PERMISOS_DEFAULT.pestanas }, edicion: { ...PERMISOS_DEFAULT.edicion } };
   return {
-    pestanas: { ...PERMISOS_DEFAULT.pestanas, ...p.permisos.pestanas },
-    modulos_todos: p.permisos.modulos_todos ?? true,
-    modulos_ids: p.permisos.modulos_ids ?? [],
+    pestanas: { ...PERMISOS_DEFAULT.pestanas, ...src.pestanas },
+    edicion:  { ...PERMISOS_DEFAULT.edicion,  ...(src.edicion ?? {}) },
+    modulos_todos: src.modulos_todos ?? true,
+    modulos_ids:   src.modulos_ids   ?? [],
   };
 }
 
 export function Usuarios() {
-  const [usuarios,     setUsuarios]     = useState<Perfil[]>([]);
-  const [modulos,      setModulos]      = useState<Modulo[]>([]);
-  const [editandoId,   setEditandoId]   = useState<string | null>(null);
-  const [permEdit,     setPermEdit]     = useState<PermisosUsuario>(PERMISOS_DEFAULT);
-  const [guardandoPerm,setGuardandoPerm]= useState(false);
+  const [usuarios,      setUsuarios]      = useState<Perfil[]>([]);
+  const [modulos,       setModulos]       = useState<Modulo[]>([]);
+  const [editandoId,    setEditandoId]    = useState<string | null>(null);
+  const [permEdit,      setPermEdit]      = useState<PermisosUsuario>(PERMISOS_DEFAULT);
+  const [guardandoPerm, setGuardandoPerm] = useState(false);
 
   const [mostrarForm, setMostrarForm] = useState(false);
   const [email,    setEmail]    = useState('');
@@ -60,9 +60,7 @@ export function Usuarios() {
   async function manejarSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null); setEnviando(true);
-    const { error } = await supabase.functions.invoke('crear-usuario', {
-      body: { email, password, nombre, rol },
-    });
+    const { error } = await supabase.functions.invoke('crear-usuario', { body: { email, password, nombre, rol } });
     setEnviando(false);
     if (error) { setError('No se pudo crear el usuario'); return; }
     setEmail(''); setPassword(''); setNombre(''); setRol('visualizador');
@@ -83,18 +81,37 @@ export function Usuarios() {
     setEditandoId(null);
   }
 
-  function setPestana(key: SeccionKey, val: boolean) {
-    setPermEdit(p => ({ ...p, pestanas: { ...p.pestanas, [key]: val } }));
+  function setPestana(key: SeccionPermiso, val: boolean) {
+    setPermEdit(p => ({
+      ...p,
+      pestanas: { ...p.pestanas, [key]: val },
+      // si apaga la pestaña, apaga también la edición
+      edicion: val ? p.edicion : { ...p.edicion, [key]: false },
+    }));
+  }
+
+  function setEdicion(key: SeccionPermiso, val: boolean) {
+    setPermEdit(p => ({ ...p, edicion: { ...p.edicion, [key]: val } }));
+  }
+
+  function setTodaEdicion(val: boolean) {
+    setPermEdit(p => {
+      const nueva = { ...p.edicion } as Record<SeccionPermiso, boolean>;
+      SECCIONES.forEach(s => { if (p.pestanas[s.key]) nueva[s.key] = val; });
+      return { ...p, edicion: nueva };
+    });
   }
 
   function toggleModulo(id: string) {
     setPermEdit(p => {
-      const ids = p.modulos_ids.includes(id)
-        ? p.modulos_ids.filter(x => x !== id)
-        : [...p.modulos_ids, id];
+      const ids = p.modulos_ids.includes(id) ? p.modulos_ids.filter(x => x !== id) : [...p.modulos_ids, id];
       return { ...p, modulos_ids: ids };
     });
   }
+
+  /* ── Derived ── */
+  const todasEditables = SECCIONES.every(s => !permEdit.pestanas[s.key] || permEdit.edicion[s.key]);
+  const algunaEditable  = SECCIONES.some(s => permEdit.pestanas[s.key] && permEdit.edicion[s.key]);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 w-full">
@@ -164,25 +181,59 @@ export function Usuarios() {
                   )}
                 </div>
 
-                {/* Panel de permisos (solo visualizadores) */}
+                {/* Panel de permisos */}
                 {abierto && !esAdmin && (
                   <div className="border-t border-gray-800 px-4 py-4 flex flex-col gap-5">
-                    {/* Secciones */}
+
+                    {/* Tabla de secciones */}
                     <div>
-                      <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500 mb-3">Secciones visibles</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {SECCIONES.map(s => (
-                          <div key={s.key} className="flex items-center justify-between bg-gray-800/60 rounded-lg px-3 py-2">
-                            <span className="text-xs text-gray-300 flex items-center gap-1.5">
-                              <span>{s.emoji}</span>{s.label}
-                            </span>
-                            <Toggle value={permEdit.pestanas[s.key]} onChange={v => setPestana(s.key, v)} />
-                          </div>
-                        ))}
+                      {/* Encabezado + master toggle edición */}
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Secciones</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-gray-500">Edición global</span>
+                          <Toggle
+                            value={todasEditables && algunaEditable}
+                            onChange={setTodaEdicion}
+                          />
+                        </div>
                       </div>
+
+                      {/* Cabecera columnas */}
+                      <div className="grid grid-cols-[1fr_56px_56px] text-[10px] font-semibold tracking-widest uppercase text-gray-600 px-3 mb-1">
+                        <span>Sección</span>
+                        <span className="text-center">Ver</span>
+                        <span className="text-center">Editar</span>
+                      </div>
+
+                      {/* Filas */}
+                      <div className="flex flex-col gap-1.5">
+                        {SECCIONES.map(s => {
+                          const verOn   = permEdit.pestanas[s.key];
+                          const editOn  = permEdit.edicion[s.key];
+                          return (
+                            <div key={s.key} className={`grid grid-cols-[1fr_56px_56px] items-center rounded-lg px-3 py-2.5 transition-colors ${verOn ? 'bg-gray-800/80' : 'bg-gray-900/40'}`}>
+                              <span className={`text-xs flex items-center gap-1.5 ${verOn ? 'text-gray-200' : 'text-gray-600'}`}>
+                                <span>{s.emoji}</span>{s.label}
+                              </span>
+                              <div className="flex justify-center">
+                                <Toggle value={verOn} onChange={v => setPestana(s.key, v)} />
+                              </div>
+                              <div className="flex justify-center">
+                                <Toggle value={editOn} onChange={v => setEdicion(s.key, v)} disabled={!verOn} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Leyenda */}
+                      <p className="text-[10px] text-gray-600 mt-2 px-1">
+                        "Editar" deshabilitado cuando la sección no está visible.
+                      </p>
                     </div>
 
-                    {/* Módulos */}
+                    {/* Tableros accesibles */}
                     {permEdit.pestanas.galeria && (
                       <div>
                         <div className="flex items-center justify-between mb-3">

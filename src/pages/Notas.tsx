@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 import { Nota } from '../types';
 import { PageHeader, Btn, EmptyState } from '../components/UI';
 
@@ -18,6 +19,8 @@ interface NE { id: string|null; titulo: string; contenido: string; color: string
 const N0: NE = { id: null, titulo: '', contenido: '', color: '#FEF9C3' };
 
 export function Notas() {
+  const { puedeEditar } = useAuth();
+  const canEdit = puedeEditar('notas');
   const [notas, setNotas]         = useState<Nota[]>([]);
   const [cargando, setCargando]   = useState(true);
   const [editando, setEditando]   = useState<NE|null>(null);
@@ -60,11 +63,11 @@ export function Notas() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 w-full">
       <PageHeader num="05 / NOTAS" title="Notas" sub="Apuntes rápidos y pensamientos"
-        actions={<Btn variant="primary" size="sm" onClick={()=>setEditando({...N0})}>+ Nueva nota</Btn>}
+        actions={canEdit && <Btn variant="primary" size="sm" onClick={()=>setEditando({...N0})}>+ Nueva nota</Btn>}
       />
 
       {/* Modal */}
-      {editando && (
+      {editando && canEdit && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={e=>{ if(e.target===e.currentTarget) guardar(); }}>
           <div className="w-full max-w-lg rounded-2xl p-6 flex flex-col gap-4 shadow-2xl animate-[slideUp_0.15s_ease]"
@@ -110,8 +113,8 @@ export function Notas() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {notas.map(nota=>(
-          <div key={nota.id} onClick={()=>setEditando({id:nota.id,titulo:nota.titulo,contenido:nota.contenido??'',color:nota.color})}
-            className="rounded-xl p-4 cursor-pointer min-h-[120px] flex flex-col gap-2 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+          <div key={nota.id} onClick={()=>{ if(canEdit) setEditando({id:nota.id,titulo:nota.titulo,contenido:nota.contenido??'',color:nota.color}); }}
+            className={`rounded-xl p-4 min-h-[120px] flex flex-col gap-2 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${canEdit?'cursor-pointer':''}`}
             style={{ background:nota.color, border:'1px solid rgba(0,0,0,0.07)' }}>
             {nota.titulo && <div className="text-sm font-semibold text-gray-900 leading-snug">{nota.titulo}</div>}
             {nota.contenido && <div className="text-xs text-gray-700 leading-relaxed line-clamp-6">{nota.contenido}</div>}

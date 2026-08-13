@@ -8,7 +8,8 @@ import { PageHeader, Btn, EmptyState, ConfirmDialog, Icon, inputCls, textareaCls
 interface EditForm { nombre: string; descripcion: string; }
 
 export function Modulos() {
-  const { perfil, puedeVerModulo } = useAuth();
+  const { perfil, puedeVerModulo, puedeEditar } = useAuth();
+  const canEdit = puedeEditar('galeria');
   const navigate = useNavigate();
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -61,7 +62,7 @@ export function Modulos() {
         title="Tableros"
         sub="Galerías de contenido organizado"
         actions={
-          perfil?.rol === 'admin' && (
+          canEdit && (
             <Btn variant="primary" size="sm" onClick={() => navigate('/modulos/nuevo')}>+ Nuevo tablero</Btn>
           )
         }
@@ -115,7 +116,7 @@ export function Modulos() {
                         <div className="mt-1 text-xs text-gray-500 truncate">{m.descripcion}</div>
                       )}
                     </div>
-                    {perfil?.rol === 'admin' && (
+                    {canEdit && (
                       <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={e => iniciarEdicion(m, e)}

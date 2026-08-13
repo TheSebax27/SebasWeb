@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 import { Rutina, DiaRutina, EjercicioRutina } from '../types';
 import { PageHeader, Btn, Field, EmptyState, inputCls } from '../components/UI';
 
@@ -33,6 +34,8 @@ function UnitToggle({ value, onChange }: { value: 'kg' | 'lbs'; onChange: (u: 'k
 }
 
 export function Gym() {
+  const { puedeEditar } = useAuth();
+  const canEdit = puedeEditar('gym');
   const [rutinas, setRutinas]         = useState<Rutina[]>([]);
   const [rutinaSelId, setRutinaSelId] = useState<string | null>(null);
   const [dias, setDias]               = useState<DiaRutina[]>([]);
@@ -193,7 +196,7 @@ export function Gym() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 w-full">
       <PageHeader num="04 / GYM" title="Gym" sub="Rutinas de entrenamiento"
-        actions={<Btn variant="primary" size="sm" onClick={() => setShowFR(f => !f)}>{showFR ? 'Cancelar' : '+ Nueva rutina'}</Btn>}
+        actions={canEdit && <Btn variant="primary" size="sm" onClick={() => setShowFR(f => !f)}>{showFR ? 'Cancelar' : '+ Nueva rutina'}</Btn>}
       />
 
       {showFR && (
@@ -223,7 +226,7 @@ export function Gym() {
                   <span className="text-sm font-semibold text-gray-100">{r.nombre}</span>
                   {r.descripcion && <span className="ml-2 text-xs text-gray-500">{r.descripcion}</span>}
                 </div>
-                <Btn variant="danger" size="sm" onClick={e => { e.stopPropagation(); eliminarRutina(r.id); }}>✕</Btn>
+                {canEdit && <Btn variant="danger" size="sm" onClick={e => { e.stopPropagation(); eliminarRutina(r.id); }}>✕</Btn>}
               </div>
 
               {sel && (
@@ -236,7 +239,7 @@ export function Gym() {
                         {d.nombre}
                       </button>
                     ))}
-                    {showFD ? (
+                    {canEdit && (showFD ? (
                       <div className="flex gap-2 items-center">
                         <input className={inputCls} placeholder="Ej. Lunes, Push..." autoFocus style={{ width: 160 }}
                           value={formD.nombre} onChange={e => setFormD({ nombre: e.target.value })} onKeyDown={e => e.key === 'Enter' && crearDia()} />
@@ -248,14 +251,14 @@ export function Gym() {
                         className="text-xs px-3 py-1.5 rounded-full border border-dashed border-gray-700 text-gray-600 hover:border-gray-600 hover:text-gray-400 cursor-pointer transition-colors">
                         + Día
                       </button>
-                    )}
+                    ))}
                   </div>
 
                   {/* Cabecera día */}
                   {diaSelId && dias.length > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{dias.find(d => d.id === diaSelId)?.nombre}</span>
-                      <Btn variant="danger" size="sm" onClick={() => eliminarDia(diaSelId)}>Eliminar día</Btn>
+                      {canEdit && <Btn variant="danger" size="sm" onClick={() => eliminarDia(diaSelId)}>Eliminar día</Btn>}
                     </div>
                   )}
 
@@ -309,15 +312,15 @@ export function Gym() {
                                     {ej.notas && <span className="text-gray-600">· {ej.notas}</span>}
                                   </div>
                                 </div>
-                                <Btn variant="ghost" size="sm" onClick={() => iniciarEdit(ej)}>Editar</Btn>
-                                <Btn variant="danger" size="sm" onClick={() => eliminarEj(ej.id)}>✕</Btn>
+                                {canEdit && <Btn variant="ghost" size="sm" onClick={() => iniciarEdit(ej)}>Editar</Btn>}
+                                {canEdit && <Btn variant="danger" size="sm" onClick={() => eliminarEj(ej.id)}>✕</Btn>}
                               </div>
                             )}
                           </div>
                         );
                       })}
 
-                      {showFE ? (
+                      {canEdit && showFE ? (
                         <div className="border border-dashed border-emerald-900 bg-emerald-950/20 rounded-xl p-4 flex flex-col gap-3 mt-1">
                           <Field label="Nombre del ejercicio">
                             <input className={inputCls} placeholder="Ej. Press banca" autoFocus value={formE.nombre} onChange={e => setFormE({ ...formE, nombre: e.target.value })} />
@@ -340,12 +343,12 @@ export function Gym() {
                             <Btn variant="ghost" size="sm" onClick={() => { setShowFE(false); setFormE(FE); }}>Cancelar</Btn>
                           </div>
                         </div>
-                      ) : (
+                      ) : canEdit ? (
                         <button className="w-full mt-1 py-2.5 text-xs font-medium text-gray-600 border border-dashed border-gray-800 rounded-lg hover:border-gray-700 hover:text-gray-400 transition-colors cursor-pointer"
                           onClick={() => { setShowFE(true); setEditId(null); }}>
                           + Agregar ejercicio
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   )}
                   {!diaSelId && dias.length === 0 && <p className="text-xs text-gray-600">Agrega un día para empezar a armar la rutina.</p>}

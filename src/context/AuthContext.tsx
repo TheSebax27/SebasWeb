@@ -1,14 +1,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../supabaseClient';
-import { Perfil, PermisosUsuario, PERMISOS_DEFAULT } from '../types';
+import { Perfil, PermisosUsuario, SeccionPermiso, PERMISOS_DEFAULT } from '../types';
 
 interface AuthContextValue {
   session: Session | null;
   perfil: Perfil | null;
   cargando: boolean;
   cerrarSesion: () => Promise<void>;
-  tieneAcceso: (seccion: keyof PermisosUsuario['pestanas']) => boolean;
+  tieneAcceso: (seccion: SeccionPermiso) => boolean;
+  puedeEditar: (seccion: SeccionPermiso) => boolean;
   puedeVerModulo: (moduloId: string) => boolean;
 }
 
@@ -35,11 +36,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, [session]);
 
-  function tieneAcceso(seccion: keyof PermisosUsuario['pestanas']): boolean {
+  function resolverPermisos(): PermisosUsuario {
+    const p = perfil?.permisos;
+    if (!p) return PERMISOS_DEFAULT;
+    return {
+      pestanas: { ...PERMISOS_DEFAULT.pestanas, ...p.pestanas },
+      edicion:  { ...PERMISOS_DEFAULT.edicion,  ...(p.edicion ?? {}) },
+      modulos_todos: p.modulos_todos ?? true,
+      modulos_ids:   p.modulos_ids   ?? [],
+    };
+  }
+
+  function tieneAcceso(seccion: SeccionPermiso): boolean {
     if (!perfil) return false;
     if (perfil.rol === 'admin') return true;
-    const p = perfil.permisos ?? PERMISOS_DEFAULT;
-    return p.pestanas[seccion] ?? false;
+    return resolverPermisos().pestanas[seccion] ?? false;
+  }
+
+  function puedeEditar(seccion: SeccionPermiso): boolean {
+    if (!perfil) return false;
+    if (perfil.rol === 'admin') return true;
+    return resolverPermisos().edicion[seccion] ?? false;
   }
 
   function puedeVerModulo(moduloId: string): boolean {
@@ -53,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function cerrarSesion() { await supabase.auth.signOut(); }
 
   return (
-    <AuthContext.Provider value={{ session, perfil, cargando, cerrarSesion, tieneAcceso, puedeVerModulo }}>
+    <AuthContext.Provider value={{ session, perfil, cargando, cerrarSesion, tieneAcceso, puedeEditar, puedeVerModulo }}>
       {children}
     </AuthContext.Provider>
   );

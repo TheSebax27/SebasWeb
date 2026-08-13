@@ -1,20 +1,17 @@
 export type Rol = 'admin' | 'visualizador';
 
+export type SeccionPermiso = 'galeria' | 'finanzas' | 'metas' | 'gym' | 'notas' | 'entretenimiento';
+
 export interface PermisosUsuario {
-  pestanas: {
-    galeria: boolean;
-    finanzas: boolean;
-    metas: boolean;
-    gym: boolean;
-    notas: boolean;
-    entretenimiento: boolean;
-  };
+  pestanas: Record<SeccionPermiso, boolean>;
+  edicion:  Record<SeccionPermiso, boolean>;
   modulos_todos: boolean;
   modulos_ids: string[];
 }
 
 export const PERMISOS_DEFAULT: PermisosUsuario = {
-  pestanas: { galeria: true, finanzas: false, metas: false, gym: false, notas: false, entretenimiento: false },
+  pestanas: { galeria: true,  finanzas: false, metas: false, gym: false, notas: false, entretenimiento: false },
+  edicion:  { galeria: false, finanzas: false, metas: false, gym: false, notas: false, entretenimiento: false },
   modulos_todos: true,
   modulos_ids: [],
 };

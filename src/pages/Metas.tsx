@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 import { Meta } from '../types';
 import { PageHeader, Btn, Field, StatTile, EmptyState, inputCls, textareaCls } from '../components/UI';
 
@@ -23,6 +24,8 @@ function BarraProgreso({ actual, meta }: { actual: number; meta: number }) {
 }
 
 export function Metas() {
+  const { puedeEditar } = useAuth();
+  const canEdit = puedeEditar('metas');
   const [metas, setMetas]         = useState<Meta[]>([]);
   const [cargando, setCargando]   = useState(true);
   const [filtro, setFiltro]       = useState<Filtro>('activas');
@@ -83,7 +86,7 @@ export function Metas() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 w-full">
       <PageHeader num="03 / METAS" title="Metas" sub="Objetivos y seguimiento de avance"
-        actions={<Btn variant="primary" size="sm" onClick={()=>{setMostrar(f=>!f);setErrorForm(null);}}>{mostrarForm?'Cancelar':'+ Nueva meta'}</Btn>}
+        actions={canEdit && <Btn variant="primary" size="sm" onClick={()=>{setMostrar(f=>!f);setErrorForm(null);}}>{mostrarForm?'Cancelar':'+ Nueva meta'}</Btn>}
       />
 
       <div className="grid grid-cols-3 gap-3 mb-8">
@@ -137,16 +140,18 @@ export function Metas() {
                 </div>
                 {meta.descripcion && <p className="mt-1 text-xs text-gray-500">{meta.descripcion}</p>}
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Btn variant="ghost" size="sm" onClick={()=>toggleCompletada(meta)}>{meta.completada?'↩':'✓'}</Btn>
-                <Btn variant="danger" size="sm" onClick={()=>eliminar(meta.id)}>✕</Btn>
-              </div>
+              {canEdit && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Btn variant="ghost" size="sm" onClick={()=>toggleCompletada(meta)}>{meta.completada?'↩':'✓'}</Btn>
+                  <Btn variant="danger" size="sm" onClick={()=>eliminar(meta.id)}>✕</Btn>
+                </div>
+              )}
             </div>
 
             {meta.valor_meta!=null && (
               <div className="mt-4">
                 <BarraProgreso actual={meta.valor_actual} meta={meta.valor_meta} />
-                {!meta.completada && (
+                {!meta.completada && canEdit && (
                   <div className="flex gap-2 mt-2">
                     <input type="number" placeholder="Sumar..." className={inputCls} style={{width:110}}
                       value={progreso[meta.id]??''} onChange={e=>setProgreso({...progreso,[meta.id]:e.target.value})}

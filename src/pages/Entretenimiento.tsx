@@ -181,8 +181,8 @@ function Seccion({ tipo, items, cardProps }: SeccionProps) {
 const FORM0 = { titulo: '', tipo: 'pelicula' as TipoEntretenimiento, estado: 'quiero' as EstadoEntretenimiento, rating: null as number | null, notas: '', plataforma: '' };
 
 export function Entretenimiento() {
-  const { perfil } = useAuth();
-  const esAdmin = perfil?.rol === 'admin';
+  const { perfil, puedeEditar } = useAuth();
+  const esAdmin = puedeEditar('entretenimiento');
 
   const [items, setItems]             = useState<EntretenimientoItem[]>([]);
   const [cargando, setCargando]       = useState(true);

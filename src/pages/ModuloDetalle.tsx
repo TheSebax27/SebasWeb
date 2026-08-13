@@ -7,7 +7,8 @@ import { PageHeader, Btn, Field, EmptyState, ConfirmDialog, Icon, inputCls, text
 
 export function ModuloDetalle() {
   const { id } = useParams<{ id: string }>();
-  const { perfil } = useAuth();
+  const { perfil, puedeEditar } = useAuth();
+  const canEdit = puedeEditar('galeria');
   const navigate = useNavigate();
   const [modulo, setModulo] = useState<Modulo | null>(null);
   const [fotos, setFotos] = useState<ModuloFoto[]>([]);
@@ -195,7 +196,7 @@ export function ModuloDetalle() {
           title={modulo.nombre}
           sub={modulo.descripcion ?? undefined}
           actions={
-            perfil?.rol === 'admin' && (
+            canEdit && (
               <>
                 <Btn variant="ghost" size="sm" onClick={iniciarEditarModulo}>
                   <Icon.Pencil className="w-3.5 h-3.5" /> Editar
@@ -214,7 +215,7 @@ export function ModuloDetalle() {
       )}
 
       {/* Subir foto */}
-      {perfil?.rol === 'admin' && (
+      {canEdit && (
         <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl p-5 mb-8 max-w-md flex flex-col gap-4">
           <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Agregar foto al tablero</p>
           <Field label="Descripción (opcional)">
@@ -242,7 +243,7 @@ export function ModuloDetalle() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {fotos.map(f => (
               <div key={f.id} className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl overflow-hidden group relative">
-                {perfil?.rol === 'admin' && (
+                {canEdit && (
                   <button
                     onClick={() => setConfirmFoto(f)}
                     className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 w-7 h-7 bg-gray-950/80 hover:bg-rose-950 rounded-lg flex items-center justify-center text-gray-400 hover:text-rose-400 transition-all cursor-pointer"
@@ -271,14 +272,14 @@ export function ModuloDetalle() {
                     </button>
                   </div>
                 ) : (
-                  (f.descripcion || perfil?.rol === 'admin') && (
+                  (f.descripcion || canEdit) && (
                     <div
-                      className={`px-3 py-2 border-t border-gray-800 flex items-center justify-between gap-2 ${perfil?.rol === 'admin' ? 'cursor-pointer hover:bg-gray-800/40' : ''} transition-colors`}
-                      onClick={() => { if (perfil?.rol === 'admin') { setEditandoFoto(f.id); setFotoDescEdit(f.descripcion ?? ''); } }}
-                      title={perfil?.rol === 'admin' ? 'Clic para editar descripción' : undefined}
+                      className={`px-3 py-2 border-t border-gray-800 flex items-center justify-between gap-2 ${canEdit ? 'cursor-pointer hover:bg-gray-800/40' : ''} transition-colors`}
+                      onClick={() => { if (canEdit) { setEditandoFoto(f.id); setFotoDescEdit(f.descripcion ?? ''); } }}
+                      title={canEdit ? 'Clic para editar descripción' : undefined}
                     >
                       <span className="text-xs text-gray-400 truncate">{f.descripcion || <span className="text-gray-700 italic">Sin descripción</span>}</span>
-                      {perfil?.rol === 'admin' && <Icon.Pencil className="w-3 h-3 text-gray-600 shrink-0" />}
+                      {canEdit && <Icon.Pencil className="w-3 h-3 text-gray-600 shrink-0" />}
                     </div>
                   )
                 )}
@@ -295,7 +296,7 @@ export function ModuloDetalle() {
             <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Sub-tableros</p>
             <p className="text-xs text-gray-600 mt-0.5">Organiza el contenido en carpetas más específicas</p>
           </div>
-          {perfil?.rol === 'admin' && (
+          {canEdit && (
             <Btn variant="ghost" size="sm" onClick={() => { setMostrarFormSub(f => !f); setErrorSub(null); }}>
               {mostrarFormSub ? 'Cancelar' : '+ Nuevo sub-tablero'}
             </Btn>
@@ -344,7 +345,7 @@ export function ModuloDetalle() {
                         </span>
                         <span className="font-medium text-sm text-gray-200 group-hover:text-emerald-400 transition-colors truncate">{sub.nombre}</span>
                       </div>
-                      {perfil?.rol === 'admin' && (
+                      {canEdit && (
                         <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={e => iniciarEditarSub(sub, e)} className="w-6 h-6 rounded flex items-center justify-center text-gray-600 hover:text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer" title="Editar">
                             <Icon.Pencil className="w-3 h-3" />

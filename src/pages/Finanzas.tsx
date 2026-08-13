@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient';
 import { Transaccion, CategoriaFinanzas, TipoTransaccion, Prestamo, TipoPrestamo, EstadoPrestamo, Credito, TipoCredito } from '../types';
 import { PageHeader, Btn, Field, StatTile, EmptyState, ConfirmDialog, inputCls, selectCls } from '../components/UI';
@@ -32,6 +33,8 @@ const TIPO_CREDITO_LABEL: Record<TipoCredito, string> = {
 
 /* ── Componente ── */
 export function Finanzas() {
+  const { puedeEditar } = useAuth();
+  const canEdit = puedeEditar('finanzas');
   const hoy = new Date();
   const [anio, setAnio] = useState(hoy.getFullYear());
   const [mes,  setMes]  = useState(hoy.getMonth());
@@ -77,6 +80,11 @@ export function Finanzas() {
   const [guardandoPago,setGuardandoPago]= useState(false);
   const [confirmCr,    setConfirmCr]    = useState<Credito|null>(null);
 
+  /* Filtros movimientos (client-side, sin refetch) */
+  const [filtroTipo, setFiltroTipo] = useState<'todos'|'ingreso'|'gasto'>('todos');
+  const [filtroCat,  setFiltroCat]  = useState<string>('');
+  const [agrupacion, setAgrupacion] = useState<'fecha'|'categoria'|'tipo'>('fecha');
+
   /* ── Carga ── */
   async function cargarCats() {
     const { data } = await supabase.from('categorias_finanzas').select('*').order('nombre');
@@ -88,6 +96,7 @@ export function Finanzas() {
       .select('*, categorias_finanzas(*)')
       .order('fecha',{ascending:false}).order('creado_en',{ascending:false});
     if (!general) q = q.gte('fecha', primerDia(anio,mes)).lte('fecha', ultimoDia(anio,mes));
+    else q = q.limit(300);
     const { data } = await q;
     setTxs((data as Transaccion[]) ?? []); setCargTx(false);
   }
@@ -289,14 +298,47 @@ export function Finanzas() {
     setConfirmCr(null); cargarCreditos();
   }
 
-  /* ── Agrupación de transacciones por fecha ── */
+  /* ── Filtros y agrupaciones (client-side) ── */
   const catsFiltradas = cats.filter(c=>c.tipo===formTx.tipo||c.tipo==='ambos');
-  const porFecha: { fecha: string; items: Transaccion[] }[] = [];
-  for(const tx of txs){
-    const last=porFecha[porFecha.length-1];
-    if(last&&last.fecha===tx.fecha) last.items.push(tx);
-    else porFecha.push({fecha:tx.fecha, items:[tx]});
-  }
+
+  const txsFiltradas = useMemo(() =>
+    txs
+      .filter(t => filtroTipo === 'todos' || t.tipo === filtroTipo)
+      .filter(t => !filtroCat || t.categoria_id === filtroCat),
+  [txs, filtroTipo, filtroCat]);
+
+  type Grupo = { key: string; label: string; sublabel?: string; items: Transaccion[]; totalNum?: number };
+
+  const grupos: Grupo[] = useMemo(() => {
+    if (agrupacion === 'fecha') {
+      const map = new Map<string, Transaccion[]>();
+      for (const tx of txsFiltradas) {
+        const arr = map.get(tx.fecha) ?? []; arr.push(tx); map.set(tx.fecha, arr);
+      }
+      return Array.from(map.entries()).map(([fecha, items]) => ({ key: fecha, label: fmtFecha(fecha), items }));
+    }
+    if (agrupacion === 'categoria') {
+      const map = new Map<string, Transaccion[]>();
+      for (const tx of txsFiltradas) {
+        const key = tx.categoria_id ?? '__sin__';
+        const arr = map.get(key) ?? []; arr.push(tx); map.set(key, arr);
+      }
+      return Array.from(map.entries())
+        .sort(([a],[b]) => a==='__sin__' ? 1 : b==='__sin__' ? -1 : a.localeCompare(b))
+        .map(([key, items]) => {
+          const cat = items[0]?.categorias_finanzas;
+          const totalNum = items.reduce((s,t) => s + (t.tipo==='ingreso'?+t.monto:-+t.monto), 0);
+          return { key, label: cat ? `${cat.emoji??'📌'} ${cat.nombre}` : '📂 Sin categoría', items, totalNum };
+        });
+    }
+    // tipo
+    const ings  = txsFiltradas.filter(t=>t.tipo==='ingreso');
+    const gsts  = txsFiltradas.filter(t=>t.tipo==='gasto');
+    const result: Grupo[] = [];
+    if (ings.length) result.push({ key:'ingreso', label:'↓ Ingresos', items:ings, totalNum:ings.reduce((s,t)=>s+ +t.monto,0) });
+    if (gsts.length) result.push({ key:'gasto',   label:'↑ Gastos',   items:gsts, totalNum:gsts.reduce((s,t)=>s+ +t.monto,0) });
+    return result;
+  }, [txsFiltradas, agrupacion]);
 
   /* ── Agrupación de préstamos ── */
   const prestadosPendientes = prestamos.filter(p=>p.tipo==='prestado' && p.estado!=='saldado');
@@ -379,15 +421,19 @@ export function Finanzas() {
               </div>
             ) : (
               <div className="flex items-center gap-2 pt-2 border-t border-gray-800">
-                <Btn variant="ghost" size="sm" onClick={() => { setDevolviendo(p.id); setErrDev(null); }}>
-                  {color==='emerald' ? '+ Registrar devolución' : '+ Registrar pago'}
-                </Btn>
-                <button onClick={() => setConfirmPr(p)}
-                  className="ml-auto text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  </svg>
-                </button>
+                {canEdit && (
+                  <Btn variant="ghost" size="sm" onClick={() => { setDevolviendo(p.id); setErrDev(null); }}>
+                    {color==='emerald' ? '+ Registrar devolución' : '+ Registrar pago'}
+                  </Btn>
+                )}
+                {canEdit && (
+                  <button onClick={() => setConfirmPr(p)}
+                    className="ml-auto text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    </svg>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -399,12 +445,14 @@ export function Finanzas() {
             <p className="text-xs text-gray-600">
               {p.fecha_devolucion ? `Saldado el ${fmtFecha(p.fecha_devolucion)}` : 'Saldado'}
             </p>
-            <button onClick={() => setConfirmPr(p)}
-              className="text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-              </svg>
-            </button>
+            {canEdit && (
+              <button onClick={() => setConfirmPr(p)}
+                className="text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -417,7 +465,7 @@ export function Finanzas() {
       <PageHeader
         num="02 / FINANZAS" title="Finanzas" sub="Resumen mensual de ingresos y gastos"
         actions={
-          tab === 'movimientos' ? (
+          canEdit && (tab === 'movimientos' ? (
             <>
               <Btn variant="ghost" size="sm" onClick={()=>{setShowCats(f=>!f);setShowTx(false);}}>Categorías</Btn>
               <Btn variant="primary" size="sm" onClick={()=>{setShowTx(f=>!f);setShowCats(false);setErrTx(null);}}>
@@ -432,7 +480,7 @@ export function Finanzas() {
             <Btn variant="primary" size="sm" onClick={()=>{setShowFormCr(f=>!f);setErrCr(null);}}>
               {showFormCr ? 'Cancelar' : '+ Nuevo crédito'}
             </Btn>
-          )
+          ))
         }
       />
 
@@ -565,34 +613,127 @@ export function Finanzas() {
             <StatTile label={modoGeneral ? 'Balance total'  : 'Balance'}  value={`$${fmt(balance)}`} />
           </div>
 
-          {/* Lista de transacciones */}
-          {cargTx && <p className="text-sm text-gray-600">Cargando...</p>}
+          {/* Barra de filtros (solo cuando hay datos o está cargando) */}
+          {(!cargTx && txs.length > 0) && (
+            <div className="flex flex-wrap gap-2 items-center mb-4">
+              {/* Filtro tipo */}
+              <div className="flex gap-0.5 bg-gray-900/50 p-0.5 rounded-lg border border-gray-800">
+                {(['todos','ingreso','gasto'] as const).map(t=>(
+                  <button key={t} onClick={()=>setFiltroTipo(t)}
+                    className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-all cursor-pointer ${filtroTipo===t
+                      ? t==='ingreso'?'bg-emerald-950 text-emerald-400'
+                      : t==='gasto'?'bg-rose-950 text-rose-400'
+                      :'bg-gray-800 text-gray-100'
+                      :'text-gray-600 hover:text-gray-400'}`}>
+                    {t==='todos'?'Todos':t==='ingreso'?'↓ Ingresos':'↑ Gastos'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Filtro categoría */}
+              {cats.length > 0 && (
+                <select value={filtroCat} onChange={e=>setFiltroCat(e.target.value)}
+                  className="text-[11px] bg-gray-900/50 border border-gray-800 rounded-lg px-2.5 py-1.5 text-gray-400 cursor-pointer outline-none focus:border-gray-600">
+                  <option value="">Todas las categorías</option>
+                  {cats.map(c=><option key={c.id} value={c.id}>{c.emoji??''} {c.nombre}</option>)}
+                </select>
+              )}
+
+              {/* Agrupación */}
+              <div className="flex items-center gap-1.5 ml-auto">
+                <span className="text-[10px] text-gray-600 uppercase tracking-wider">Agrupar</span>
+                <div className="flex gap-0.5 bg-gray-900/50 p-0.5 rounded-lg border border-gray-800">
+                  {([['fecha','📅 Fecha'],['categoria','📂 Cat.'],['tipo','↕ Tipo']] as const).map(([k,l])=>(
+                    <button key={k} onClick={()=>setAgrupacion(k)}
+                      className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-all cursor-pointer ${agrupacion===k?'bg-gray-800 text-gray-100':'text-gray-600 hover:text-gray-400'}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Limpiar filtros */}
+              {(filtroTipo!=='todos'||filtroCat) && (
+                <button onClick={()=>{setFiltroTipo('todos');setFiltroCat('');}}
+                  className="text-[11px] text-gray-600 hover:text-gray-300 transition-colors cursor-pointer underline">
+                  Limpiar
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Contador de resultados */}
+          {!cargTx && txsFiltradas.length > 0 && (filtroTipo!=='todos'||filtroCat) && (
+            <p className="text-[11px] text-gray-600 mb-3">{txsFiltradas.length} de {txs.length} movimientos</p>
+          )}
+          {modoGeneral && !cargTx && txs.length >= 300 && (
+            <p className="text-[11px] text-amber-700 mb-3">Mostrando los últimos 300 movimientos en modo General.</p>
+          )}
+
+          {/* Skeleton de carga */}
+          {cargTx && (
+            <div className="flex flex-col gap-4 animate-pulse">
+              {[3,2,2].map((rows,gi)=>(
+                <div key={gi} className="bg-gray-900/70 border border-gray-800 rounded-xl overflow-hidden">
+                  <div className="h-2.5 bg-gray-800 rounded w-24 mx-4 mt-3 mb-2" />
+                  {Array.from({length:rows}).map((_,i)=>(
+                    <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i<rows-1?'border-b border-gray-800':''}`}>
+                      <div className="w-8 h-8 rounded-full bg-gray-800 shrink-0" />
+                      <div className="flex-1 flex flex-col gap-1.5">
+                        <div className="h-3 bg-gray-800 rounded w-28" />
+                        <div className="h-2 bg-gray-800/50 rounded w-16" />
+                      </div>
+                      <div className="h-3 bg-gray-800 rounded w-16" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Lista de transacciones agrupadas */}
           {!cargTx && txs.length===0 && <EmptyState message={modoGeneral ? 'Sin movimientos registrados.' : `Sin movimientos en ${MESES[mes]}.`} />}
-          {!cargTx && porFecha.map(({fecha,items})=>(
-            <div key={fecha} className="mb-4">
-              <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-600 mb-2">{fmtFecha(fecha)}</p>
+          {!cargTx && txs.length>0 && txsFiltradas.length===0 && <EmptyState message="Ningún movimiento coincide con los filtros." />}
+          {!cargTx && grupos.map(grupo=>(
+            <div key={grupo.key} className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-600">{grupo.label}</p>
+                {grupo.totalNum !== undefined && (
+                  <span className={`text-[10px] font-semibold ${grupo.totalNum>=0?'text-emerald-500':'text-rose-500'}`}>
+                    {grupo.totalNum>=0?'+':''}{fmt(grupo.totalNum)}
+                  </span>
+                )}
+                {agrupacion !== 'fecha' && (
+                  <span className="text-[10px] text-gray-700 ml-auto">{grupo.items.length} mov.</span>
+                )}
+              </div>
               <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-xl overflow-hidden">
-                {items.map((tx,i)=>{
+                {grupo.items.map((tx,i)=>{
                   const cat=tx.categorias_finanzas;
                   const esI=tx.tipo==='ingreso';
                   return (
-                    <div key={tx.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-800/50 transition-colors ${i<items.length-1?'border-b border-gray-800':''}`}>
+                    <div key={tx.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-800/50 transition-colors ${i<grupo.items.length-1?'border-b border-gray-800':''}`}>
                       <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-base shrink-0">
                         {cat?.emoji??(esI?'↓':'↑')}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-gray-200">{cat?.nombre??'Sin categoría'}</div>
                         {tx.descripcion && <div className="text-xs text-gray-500 truncate">{tx.descripcion}</div>}
+                        {agrupacion !== 'fecha' && (
+                          <div className="text-[10px] text-gray-700">{fmtFecha(tx.fecha)}</div>
+                        )}
                       </div>
                       <div className={`text-sm font-semibold shrink-0 ${esI?'text-emerald-400':'text-rose-400'}`}>
                         {esI?'+':'-'}${fmt(+tx.monto)}
                       </div>
-                      <button onClick={()=>setConfirmTx(tx)}
-                        className="text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1 shrink-0">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                        </svg>
-                      </button>
+                      {canEdit && (
+                        <button onClick={()=>setConfirmTx(tx)}
+                          className="text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1 shrink-0">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -649,7 +790,20 @@ export function Finanzas() {
             </div>
           )}
 
-          {cargPr && <p className="text-sm text-gray-600">Cargando...</p>}
+          {cargPr && (
+            <div className="flex flex-col gap-3 animate-pulse">
+              {[1,2].map(i=>(
+                <div key={i} className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-gray-800 shrink-0" />
+                  <div className="flex-1 flex flex-col gap-2">
+                    <div className="h-3 bg-gray-800 rounded w-32" />
+                    <div className="h-2.5 bg-gray-800/50 rounded w-20" />
+                  </div>
+                  <div className="h-4 bg-gray-800 rounded w-20" />
+                </div>
+              ))}
+            </div>
+          )}
 
           {!cargPr && prestamos.length === 0 && (
             <EmptyState message="No hay préstamos registrados." />
@@ -753,7 +907,23 @@ export function Finanzas() {
             </div>
           )}
 
-          {cargCr && <p className="text-sm text-gray-600">Cargando...</p>}
+          {cargCr && (
+            <div className="flex flex-col gap-3 animate-pulse">
+              {[1,2].map(i=>(
+                <div key={i} className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gray-800 shrink-0" />
+                    <div className="flex-1 flex flex-col gap-2">
+                      <div className="h-3 bg-gray-800 rounded w-36" />
+                      <div className="h-2.5 bg-gray-800/50 rounded w-24" />
+                    </div>
+                    <div className="h-4 bg-gray-800 rounded w-20" />
+                  </div>
+                  <div className="h-1.5 bg-gray-800 rounded-full w-full" />
+                </div>
+              ))}
+            </div>
+          )}
           {!cargCr && creditos.length === 0 && <EmptyState message="No hay créditos registrados." />}
 
           {/* Activos */}
@@ -812,33 +982,35 @@ export function Finanzas() {
                     </div>
 
                     {/* Pagar cuota */}
-                    <div className="px-4 pb-3 border-t border-gray-800 pt-3">
-                      {pagando ? (
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <Field label="Fecha de pago">
-                            <input className={inputCls} type="date" value={fechaPagoCr} onChange={e=>setFechaPagoCr(e.target.value)} />
-                          </Field>
-                          <div className="flex gap-2 items-end">
-                            <Btn variant="primary" size="sm" onClick={()=>registrarPago(cr)} disabled={guardandoPago}>
-                              {guardandoPago?'Guardando...':'Confirmar pago'}
-                            </Btn>
-                            <Btn variant="text" size="sm" onClick={()=>{setPagandoCr(null);setFechaPagoCr(hoyIso());}}>Cancelar</Btn>
+                    {canEdit && (
+                      <div className="px-4 pb-3 border-t border-gray-800 pt-3">
+                        {pagando ? (
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <Field label="Fecha de pago">
+                              <input className={inputCls} type="date" value={fechaPagoCr} onChange={e=>setFechaPagoCr(e.target.value)} />
+                            </Field>
+                            <div className="flex gap-2 items-end">
+                              <Btn variant="primary" size="sm" onClick={()=>registrarPago(cr)} disabled={guardandoPago}>
+                                {guardandoPago?'Guardando...':'Confirmar pago'}
+                              </Btn>
+                              <Btn variant="text" size="sm" onClick={()=>{setPagandoCr(null);setFechaPagoCr(hoyIso());}}>Cancelar</Btn>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Btn variant={vencido||urgente?'primary':'ghost'} size="sm" onClick={()=>setPagandoCr(cr.id)}>
-                            {vencido?'⚠ Pagar cuota vencida':urgente?'⏰ Pagar cuota pronto':'+ Registrar pago'}
-                          </Btn>
-                          <button onClick={()=>setConfirmCr(cr)}
-                            className="ml-auto text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Btn variant={vencido||urgente?'primary':'ghost'} size="sm" onClick={()=>setPagandoCr(cr.id)}>
+                              {vencido?'⚠ Pagar cuota vencida':urgente?'⏰ Pagar cuota pronto':'+ Registrar pago'}
+                            </Btn>
+                            <button onClick={()=>setConfirmCr(cr)}
+                              className="ml-auto text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
+                                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -858,11 +1030,11 @@ export function Finanzas() {
                       <p className="text-xs text-gray-600">{cr.cuotas_total} cuotas · ${fmt(+cr.monto_total)}</p>
                     </div>
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950/50 text-emerald-400 border border-emerald-900">Saldado</span>
-                    <button onClick={()=>setConfirmCr(cr)} className="text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
+                    {canEdit && <button onClick={()=>setConfirmCr(cr)} className="text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
                         <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                       </svg>
-                    </button>
+                    </button>}
                   </div>
                 ))}
               </div>
