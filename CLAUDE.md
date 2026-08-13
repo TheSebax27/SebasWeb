@@ -7,7 +7,7 @@ App web personal de Sebastián. Incluye gestión de módulos con galería de fot
 - **Frontend:** React 18 + TypeScript + Vite + React Router v6
 - **Backend:** Supabase (Auth, Postgres, Edge Functions en Deno/TypeScript)
 - **Almacenamiento fotos:** Google Drive via OAuth2 refresh token
-- **CSS:** Sistema de diseño propio en `src/index.css` con CSS custom properties — NO estilos inline ni framework externo
+- **CSS:** Tailwind CSS v4 via `@tailwindcss/vite` (sin `tailwind.config.ts`) — `@import "tailwindcss"` en `src/index.css`
 - **Tipografía:** Instrument Serif (títulos/display) + Inter (UI) via Google Fonts en `index.html`
 - **Componentes compartidos:** `src/components/UI.tsx` — PageHeader, Btn, Field, Badge, Divider, EmptyState, StatTile
 - **Deploy:** Vercel (frontend) + Supabase (backend/functions)
@@ -31,7 +31,8 @@ src/
   pages/
     Login.tsx                # Página de login
     Modulos.tsx              # Lista de módulos (todos los roles)
-    ModuloDetalle.tsx        # Detalle + galería con descripción por foto
+    ModuloDetalle.tsx        # Detalle + galería + sección de sub-módulos con crear/eliminar
+    SubmoduloDetalle.tsx     # Detalle de sub-módulo con galería propia (breadcrumb incluido)
     CrearModulo.tsx          # Formulario crear módulo (solo admin)
     Usuarios.tsx             # Gestión de usuarios (solo admin)
     Finanzas.tsx             # Ingresos/gastos con categorías personalizadas
@@ -44,10 +45,12 @@ supabase/functions/
   _shared/
     auth.ts                  # crearClienteAdmin(), requireAdmin()
     cors.ts                  # corsHeaders + handleCors()
-    google-drive.ts          # obtenerAccessToken() via refresh token, crearCarpetaModulo(), subirArchivoADrive(), urlMiniaturaDrive()
+    google-drive.ts          # obtenerAccessToken(), crearCarpetaModulo(), crearSubcarpeta(parentId, nombre), subirArchivoADrive(), urlMiniaturaDrive()
   crear-modulo/index.ts      # POST: crea carpeta en Drive + registro en BD
+  crear-submodulo/index.ts   # POST {nombre, descripcion, modulo_id}: crea subcarpeta en Drive + registro en BD
   crear-usuario/index.ts     # POST: crea usuario en Auth + perfil en BD
-  subir-foto/index.ts        # POST multipart: sube foto + descripcion a Drive + BD
+  subir-foto/index.ts        # POST multipart {modulo_id, foto, descripcion}: sube foto a Drive + BD
+  subir-foto-submodulo/index.ts # POST multipart {submodulo_id, foto, descripcion}: sube foto al sub-módulo
 
 supabase/
   nuevas_secciones.sql       # Tablas: transacciones, metas, rutinas, notas, entretenimiento
@@ -62,6 +65,7 @@ supabase/
 | `/` | Modulos | Todos |
 | `/modulos/nuevo` | CrearModulo | Admin |
 | `/modulos/:id` | ModuloDetalle | Todos |
+| `/modulos/:id/submodulos/:subId` | SubmoduloDetalle | Todos |
 | `/finanzas` | Finanzas | Admin |
 | `/metas` | Metas | Admin |
 | `/gym` | Gym | Admin |
@@ -98,6 +102,8 @@ DRIVE_ROOT_FOLDER_ID=    # ID de carpeta raíz en Google Drive (Mi unidad, compa
 | `perfiles` | `id` (=auth.uid), `email`, `nombre`, `rol` (admin/visualizador), `activo` |
 | `modulos` | `id`, `nombre`, `descripcion`, `drive_folder_id`, `creado_por`, timestamps |
 | `modulo_fotos` | `id`, `modulo_id`, `drive_file_id`, `url_publica`, `descripcion`, `orden`, `creado_en` |
+| `submodulos` | `id`, `modulo_id` → modulos, `nombre`, `descripcion`, `drive_folder_id`, `creado_por`, `creado_en` |
+| `submodulo_fotos` | `id`, `submodulo_id` → submodulos, `drive_file_id`, `url_publica`, `descripcion`, `orden`, `creado_en` |
 
 ### Finanzas
 | Tabla | Campos clave |
@@ -188,9 +194,11 @@ npm run dev      # Servidor de desarrollo Vite
 npm run build    # Build de producción (tsc + vite build)
 
 # Deploy de Edge Functions (reemplazar PROJECT_REF)
-npx supabase functions deploy subir-foto    --project-ref PROJECT_REF
-npx supabase functions deploy crear-modulo  --project-ref PROJECT_REF
-npx supabase functions deploy crear-usuario --project-ref PROJECT_REF
+npx supabase functions deploy subir-foto             --project-ref PROJECT_REF
+npx supabase functions deploy subir-foto-submodulo   --project-ref PROJECT_REF
+npx supabase functions deploy crear-modulo           --project-ref PROJECT_REF
+npx supabase functions deploy crear-submodulo        --project-ref PROJECT_REF
+npx supabase functions deploy crear-usuario          --project-ref PROJECT_REF
 ```
 
 ## SQL pendiente de ejecutar en Supabase
@@ -198,3 +206,4 @@ Si es una instalación nueva, ejecutar en orden en el SQL Editor:
 1. `supabase/nuevas_secciones.sql` — tablas base de todas las secciones
 2. `supabase/gym_rediseno.sql` — rediseño gym con nivel días
 3. `supabase/finanzas_setup.sql` — categorías + recrear transacciones
+4. `supabase/submodulos_setup.sql` — tablas `submodulos` y `submodulo_fotos`
