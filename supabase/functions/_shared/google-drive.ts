@@ -163,3 +163,14 @@ export async function subirArchivoADrive(
 export function urlMiniaturaDrive(fileId: string): string {
   return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
 }
+
+export async function eliminarArchivoDrive(fileId: string): Promise<void> {
+  const token = await obtenerAccessToken();
+  await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}

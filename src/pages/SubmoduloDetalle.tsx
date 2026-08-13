@@ -102,10 +102,17 @@ export function SubmoduloDetalle() {
     cargarDatos();
   }
 
-  /* ── Fotos: eliminar ── */
+  /* ── Fotos: eliminar (Drive + BD) ── */
   async function eliminarFoto() {
     if (!confirmFoto) return;
-    await supabase.from('submodulo_fotos').delete().eq('id', confirmFoto.id);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/eliminar-foto`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foto_id: confirmFoto.id, tipo: 'submodulo' }),
+      });
+    }
     setConfirmFoto(null);
     cargarDatos();
   }

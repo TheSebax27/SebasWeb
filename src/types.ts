@@ -131,5 +131,9 @@ export interface EntretenimientoItem {
   estado: EstadoEntretenimiento;
   rating: number | null;
   notas: string | null;
+  url_portada: string | null;
+  drive_file_id: string | null;
+  plataforma: string | null;
+  fecha_finalizado: string | null;
   creado_en: string;
 }
