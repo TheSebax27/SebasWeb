@@ -13,6 +13,7 @@ export function ModuloDetalle() {
   const [modulo, setModulo] = useState<Modulo | null>(null);
   const [fotos, setFotos] = useState<ModuloFoto[]>([]);
   const [submodulos, setSubmodulos] = useState<Submodulo[]>([]);
+  const [conteosFotos, setConteosFotos] = useState<Record<string, number>>({});
 
   // Subir foto
   const [subiendo, setSubiendo] = useState(false);
@@ -50,11 +51,13 @@ export function ModuloDetalle() {
     const [{ data: moduloData }, { data: fotosData }, { data: subsData }] = await Promise.all([
       supabase.from('modulos').select('*').eq('id', id).single(),
       supabase.from('modulo_fotos').select('*').eq('modulo_id', id).order('orden'),
-      supabase.from('submodulos').select('*').eq('modulo_id', id).order('creado_en'),
+      supabase.from('submodulos').select('*, submodulo_fotos(count)').eq('modulo_id', id).order('creado_en'),
     ]);
     setModulo(moduloData as Modulo);
     setFotos((fotosData as ModuloFoto[]) ?? []);
-    setSubmodulos((subsData as Submodulo[]) ?? []);
+    const subsTyped = (subsData as (Submodulo & { submodulo_fotos: { count: number }[] })[]) ?? [];
+    setSubmodulos(subsTyped as Submodulo[]);
+    setConteosFotos(Object.fromEntries(subsTyped.map(s => [s.id, s.submodulo_fotos?.[0]?.count ?? 0])));
   }
 
   useEffect(() => { if (id) cargarDatos(); }, [id]);
@@ -357,6 +360,9 @@ export function ModuloDetalle() {
                       )}
                     </div>
                     {sub.descripcion && <p className="mt-2 text-xs text-gray-500 leading-relaxed line-clamp-2 pl-7">{sub.descripcion}</p>}
+                    <p className="mt-1.5 text-[10px] text-gray-700 pl-7">
+                      {conteosFotos[sub.id] ?? 0} foto{(conteosFotos[sub.id] ?? 0) !== 1 ? 's' : ''}
+                    </p>
                   </div>
                 )}
               </div>

@@ -1,6 +1,6 @@
 export type Rol = 'admin' | 'visualizador';
 
-export type SeccionPermiso = 'galeria' | 'finanzas' | 'metas' | 'gym' | 'notas' | 'entretenimiento';
+export type SeccionPermiso = 'galeria' | 'finanzas' | 'metas' | 'gym' | 'notas' | 'entretenimiento' | 'eventos';
 
 export interface PermisosUsuario {
   pestanas: Record<SeccionPermiso, boolean>;
@@ -10,8 +10,8 @@ export interface PermisosUsuario {
 }
 
 export const PERMISOS_DEFAULT: PermisosUsuario = {
-  pestanas: { galeria: true,  finanzas: false, metas: false, gym: false, notas: false, entretenimiento: false },
-  edicion:  { galeria: false, finanzas: false, metas: false, gym: false, notas: false, entretenimiento: false },
+  pestanas: { galeria: true,  finanzas: false, metas: false, gym: false, notas: false, entretenimiento: false, eventos: false },
+  edicion:  { galeria: false, finanzas: false, metas: false, gym: false, notas: false, entretenimiento: false, eventos: false },
   modulos_todos: true,
   modulos_ids: [],
 };
@@ -191,5 +191,38 @@ export interface EntretenimientoItem {
   drive_file_id: string | null;
   plataforma: string | null;
   fecha_finalizado: string | null;
+  creado_en: string;
+}
+
+export type EstadoAsistencia = 'fui' | 'quiero_ir';
+
+export interface Concierto {
+  id: string;
+  artista: string;
+  tour_festival: string | null;
+  lugar: string | null;
+  ciudad: string | null;
+  fecha: string | null;
+  estado: EstadoAsistencia;
+  notas: string | null;
+  url_portada: string | null;
+  drive_file_id: string | null;
+  creado_en: string;
+}
+
+export interface Partido {
+  id: string;
+  descripcion: string;
+  equipo_local: string | null;
+  equipo_visitante: string | null;
+  competicion: string | null;
+  estadio: string | null;
+  ciudad: string | null;
+  fecha: string | null;
+  resultado: string | null;
+  estado: EstadoAsistencia;
+  notas: string | null;
+  url_portada: string | null;
+  drive_file_id: string | null;
   creado_en: string;
 }

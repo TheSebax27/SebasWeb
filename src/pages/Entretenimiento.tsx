@@ -29,15 +29,15 @@ function estadoCls(e: EstadoEntretenimiento)   { return ESTADOS.find(x => x.valo
 function estadoLabel(e: EstadoEntretenimiento) { return ESTADOS.find(x => x.valor === e)?.label ?? e; }
 
 function plataformaCls(p: string): string {
-  if (p === 'Netflix')                              return 'bg-red-950/50 text-red-400 border-red-900/60';
-  if (p === 'Prime Video')                          return 'bg-cyan-950/50 text-cyan-400 border-cyan-900/60';
-  if (p === 'Disney+')                              return 'bg-blue-950/50 text-blue-400 border-blue-900/60';
-  if (p === 'HBO Max')                              return 'bg-violet-950/50 text-violet-400 border-violet-900/60';
-  if (p === 'Apple TV+')                            return 'bg-gray-800 text-gray-300 border-gray-700';
-  if (p === 'PS5' || p === 'PS4')                   return 'bg-blue-950/50 text-blue-400 border-blue-900/60';
-  if (p === 'Xbox')                                 return 'bg-green-950/50 text-green-400 border-green-900/60';
-  if (p.includes('Steam') || p.includes('PC'))      return 'bg-gray-800 text-gray-300 border-gray-700';
-  if (p === 'Nintendo Switch')                      return 'bg-red-950/50 text-red-400 border-red-900/60';
+  if (p === 'Netflix')                         return 'bg-red-950/50 text-red-400 border-red-900/60';
+  if (p === 'Prime Video')                     return 'bg-cyan-950/50 text-cyan-400 border-cyan-900/60';
+  if (p === 'Disney+')                         return 'bg-blue-950/50 text-blue-400 border-blue-900/60';
+  if (p === 'HBO Max')                         return 'bg-violet-950/50 text-violet-400 border-violet-900/60';
+  if (p === 'Apple TV+')                       return 'bg-gray-800 text-gray-300 border-gray-700';
+  if (p === 'PS5' || p === 'PS4')              return 'bg-blue-950/50 text-blue-400 border-blue-900/60';
+  if (p === 'Xbox')                            return 'bg-green-950/50 text-green-400 border-green-900/60';
+  if (p.includes('Steam') || p.includes('PC')) return 'bg-gray-800 text-gray-300 border-gray-700';
+  if (p === 'Nintendo Switch')                 return 'bg-red-950/50 text-red-400 border-red-900/60';
   return 'bg-gray-800 text-gray-500 border-gray-700';
 }
 
@@ -101,7 +101,6 @@ function ItemCard({ item, esAdmin, subiendoPortadaId, onEliminar, onCambiarPorta
           </div>
         )}
 
-        {/* Overlay: cambiar portada (admin) */}
         {esAdmin && (
           <>
             <button
@@ -120,7 +119,6 @@ function ItemCard({ item, esAdmin, subiendoPortadaId, onEliminar, onCambiarPorta
           </>
         )}
 
-        {/* Borrar ítem */}
         {esAdmin && (
           <button onClick={() => onEliminar(item)}
             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-7 h-7 bg-gray-950/80 hover:bg-rose-950 rounded-lg flex items-center justify-center text-gray-400 hover:text-rose-400 transition-all cursor-pointer"
@@ -129,7 +127,6 @@ function ItemCard({ item, esAdmin, subiendoPortadaId, onEliminar, onCambiarPorta
           </button>
         )}
 
-        {/* Plataforma badge */}
         {item.plataforma && (
           <span className={`absolute bottom-2 left-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border backdrop-blur-sm ${plataformaCls(item.plataforma)}`}>
             {item.plataforma}
@@ -172,7 +169,6 @@ function ItemCard({ item, esAdmin, subiendoPortadaId, onEliminar, onCambiarPorta
           </p>
         )}
 
-        {/* Cambio de estado rápido */}
         {esAdmin && (
           <div className="flex gap-1 flex-wrap pt-1.5 border-t border-gray-800/60 mt-auto">
             {ESTADOS.map(s => (
@@ -215,7 +211,7 @@ function Seccion({ tipo, items, cardProps }: SeccionProps) {
 const FORM0 = { titulo: '', tipo: 'pelicula' as TipoEntretenimiento, estado: 'quiero' as EstadoEntretenimiento, rating: null as number | null, notas: '', plataforma: '' };
 
 export function Entretenimiento() {
-  const { perfil, puedeEditar } = useAuth();
+  const { puedeEditar } = useAuth();
   const esAdmin = puedeEditar('entretenimiento');
 
   const [items, setItems]             = useState<EntretenimientoItem[]>([]);
@@ -238,7 +234,6 @@ export function Entretenimiento() {
   }
   useEffect(() => { cargar(); }, []);
 
-  /* filtros */
   function filtrarYOrdenar(lista: EntretenimientoItem[]) {
     let r = estadoF === 'todos' ? lista : lista.filter(i => i.estado === estadoF);
     if (orden === 'rating')  r = [...r].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
@@ -247,7 +242,6 @@ export function Entretenimiento() {
   }
   const filtrados = filtrarYOrdenar(items);
 
-  /* crear */
   async function guardar() {
     if (!form.titulo.trim()) { setError('El título es obligatorio'); return; }
     setGuardando(true); setError(null);
@@ -323,8 +317,7 @@ export function Entretenimiento() {
   const stats = TIPOS.map(t => ({ ...t, count: items.filter(i => i.tipo === t.valor).length }));
 
   const cardProps: Omit<CardProps, 'item'> = {
-    esAdmin,
-    subiendoPortadaId,
+    esAdmin, subiendoPortadaId,
     onEliminar: setConfirm,
     onCambiarPortada: (id, file, tipo) => cambiarPortadaCard(id, file, tipo),
     onEstado: actualizarEstado,
@@ -336,8 +329,8 @@ export function Entretenimiento() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full">
       <PageHeader
         num="06 / ENTRETENIMIENTO"
-        title="Entretenimiento"
-        sub="Películas, series y juegos"
+        title="Entretenimiento Favorito"
+        sub="Películas, series y juegos que me gustan"
         actions={esAdmin && (
           <Btn variant="primary" size="sm" onClick={() => { setMostrarForm(f => !f); setError(null); }}>
             {mostrarForm ? 'Cancelar' : '+ Agregar'}
@@ -427,7 +420,7 @@ export function Entretenimiento() {
         </div>
       </div>
 
-      {/* Contenido dividido por tipo */}
+      {/* Contenido */}
       {cargando ? (
         <p className="text-sm text-gray-600">Cargando...</p>
       ) : filtrados.length === 0 ? (
@@ -441,7 +434,7 @@ export function Entretenimiento() {
       <ConfirmDialog
         open={!!confirm}
         title={`Eliminar "${confirm?.titulo}"`}
-        message="Se eliminará este ítem y su portada de Drive permanentemente. Esta acción no se puede deshacer."
+        message="Se eliminará este ítem y su portada de Drive permanentemente."
         onConfirm={eliminar}
         onCancel={() => setConfirm(null)}
       />

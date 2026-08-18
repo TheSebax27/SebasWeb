@@ -18,6 +18,7 @@ const LINKS: LinkDef[] = [
   { to: '/gym',             label: 'Gym',             seccion: 'gym' },
   { to: '/notas',           label: 'Notas',           seccion: 'notas' },
   { to: '/entretenimiento', label: 'Entretenimiento', seccion: 'entretenimiento' },
+  { to: '/eventos',         label: 'Eventos',         seccion: 'eventos' },
   { to: '/usuarios',        label: 'Usuarios',        soloAdmin: true },
 ];
 

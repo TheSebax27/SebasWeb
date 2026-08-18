@@ -12,6 +12,7 @@ export function Modulos() {
   const canEdit = puedeEditar('galeria');
   const navigate = useNavigate();
   const [modulos, setModulos] = useState<Modulo[]>([]);
+  const [conteos, setConteos] = useState<Record<string, number>>({});
   const [cargando, setCargando] = useState(true);
   const [editando, setEditando] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({ nombre: '', descripcion: '' });
@@ -20,9 +21,10 @@ export function Modulos() {
   const [eliminando, setEliminando] = useState(false);
 
   async function cargar() {
-    const { data } = await supabase.from('modulos').select('*').order('creado_en', { ascending: false });
-    const todos = (data as Modulo[]) ?? [];
-    setModulos(todos.filter(m => puedeVerModulo(m.id)));
+    const { data } = await supabase.from('modulos').select('*, submodulos(count)').order('creado_en', { ascending: false });
+    const todos = (data as (Modulo & { submodulos: { count: number }[] })[]) ?? [];
+    setModulos(todos.filter(m => puedeVerModulo(m.id)) as Modulo[]);
+    setConteos(Object.fromEntries(todos.map(m => [m.id, m.submodulos?.[0]?.count ?? 0])));
     setCargando(false);
   }
 
@@ -135,8 +137,13 @@ export function Modulos() {
                       </div>
                     )}
                   </div>
-                  <div className="mt-4 text-[10px] text-gray-700">
-                    {new Date(m.creado_en).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-[10px] text-gray-700">
+                      {new Date(m.creado_en).toLocaleDateString('es', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
+                    <span className="text-[10px] font-medium text-gray-600">
+                      {conteos[m.id] ?? 0} sub-tablero{(conteos[m.id] ?? 0) !== 1 ? 's' : ''}
+                    </span>
                   </div>
                 </>
               )}

@@ -12,6 +12,7 @@ import { Metas } from './pages/Metas';
 import { Gym } from './pages/Gym';
 import { Notas } from './pages/Notas';
 import { Entretenimiento } from './pages/Entretenimiento';
+import { Eventos } from './pages/Eventos';
 import { SubmoduloDetalle } from './pages/SubmoduloDetalle';
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -44,7 +45,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SeccionRoute({ children, seccion }: { children: React.ReactNode; seccion: 'galeria'|'finanzas'|'metas'|'gym'|'notas'|'entretenimiento' }) {
+function SeccionRoute({ children, seccion }: { children: React.ReactNode; seccion: 'galeria'|'finanzas'|'metas'|'gym'|'notas'|'entretenimiento'|'eventos' }) {
   return (
     <ProtectedRoute seccion={seccion}>
       <Layout>{children}</Layout>
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/gym"             element={<SeccionRoute seccion="gym"><Gym /></SeccionRoute>} />
           <Route path="/notas"           element={<SeccionRoute seccion="notas"><Notas /></SeccionRoute>} />
           <Route path="/entretenimiento" element={<SeccionRoute seccion="entretenimiento"><Entretenimiento /></SeccionRoute>} />
+          <Route path="/eventos"         element={<SeccionRoute seccion="eventos"><Eventos /></SeccionRoute>} />
 
           {/* Solo admin */}
           <Route path="/usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
