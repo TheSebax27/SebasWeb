@@ -203,7 +203,7 @@ export function SubmoduloDetalle() {
                   <Icon.Trash className="w-3.5 h-3.5" />
                 </button>
               )}
-              <img src={f.url_publica ?? ''} alt={f.descripcion ?? submodulo.nombre} className="w-full object-cover aspect-square" />
+              <img src={f.url_publica ?? ''} alt={f.descripcion ?? submodulo.nombre} loading="lazy" decoding="async" className="w-full object-cover aspect-square transition-opacity duration-300" />
 
               {/* Descripción editable */}
               {editandoFoto === f.id ? (

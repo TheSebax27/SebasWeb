@@ -89,7 +89,7 @@ function ItemCard({ item, esAdmin, subiendoPortadaId, onEliminar, onCambiarPorta
       {/* Portada */}
       <div className="relative" style={{ aspectRatio: '2/3' }}>
         {item.url_portada ? (
-          <img src={item.url_portada} alt={item.titulo} className="w-full h-full object-cover" />
+          <img src={item.url_portada} alt={item.titulo} loading="lazy" decoding="async" className="w-full h-full object-cover transition-opacity duration-300" />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900/60 gap-2">
             <span className="text-4xl opacity-20">{TIPOS.find(t => t.valor === item.tipo)?.emoji}</span>

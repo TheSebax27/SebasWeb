@@ -16,17 +16,24 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [perfil, setPerfil]   = useState<Perfil | null>(null);
-  const [cargando, setCargando] = useState(true);
+  const [session, setSession]     = useState<Session | null>(null);
+  const [perfil, setPerfil]       = useState<Perfil | null>(null);
+  const [cargando, setCargando]   = useState(true);
+  // Evita que ProtectedRoute redirija antes de que getSession resuelva
+  const [verificado, setVerificado] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session ?? null);
+      setVerificado(true);
+      if (!data.session) setCargando(false);
+    });
     const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => listener.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
+    if (!verificado) return;
     if (!session) { setPerfil(null); setCargando(false); return; }
     setCargando(true);
     supabase.from('perfiles').select('*').eq('id', session.user.id).single()
@@ -34,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!error) setPerfil(data as Perfil);
         setCargando(false);
       });
-  }, [session]);
+  }, [session, verificado]);
 
   function resolverPermisos(): PermisosUsuario {
     const p = perfil?.permisos;

@@ -34,7 +34,7 @@ function FotoEvento({ url, esAdmin, subiendo, onFile, emoji }: {
         title={esAdmin ? (url ? 'Cambiar foto' : 'Agregar foto') : undefined}
       >
         {url ? (
-          <img src={url} alt="" className="w-full h-full object-cover" />
+          <img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover transition-opacity duration-300" />
         ) : (
           <span className="text-2xl opacity-40">{emoji}</span>
         )}
