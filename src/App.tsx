@@ -13,6 +13,7 @@ import { Gym } from './pages/Gym';
 import { Notas } from './pages/Notas';
 import { Entretenimiento } from './pages/Entretenimiento';
 import { Eventos } from './pages/Eventos';
+import { Dashboard } from './pages/Dashboard';
 import { SubmoduloDetalle } from './pages/SubmoduloDetalle';
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -73,6 +74,9 @@ export default function App() {
           <Route path="/notas"           element={<SeccionRoute seccion="notas"><Notas /></SeccionRoute>} />
           <Route path="/entretenimiento" element={<SeccionRoute seccion="entretenimiento"><Entretenimiento /></SeccionRoute>} />
           <Route path="/eventos"         element={<SeccionRoute seccion="eventos"><Eventos /></SeccionRoute>} />
+
+          {/* Dashboard — accesible a todos los autenticados */}
+          <Route path="/dashboard" element={<AuthRoute><Dashboard /></AuthRoute>} />
 
           {/* Solo admin */}
           <Route path="/usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
   Sparkles, User, Lock, Eye, EyeOff, ArrowRight, LogOut,
@@ -84,7 +84,7 @@ export function Btn({ variant = 'ghost', size = 'md', className = '', children, 
         'disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap select-none',
         {
           // primary — dorado cálido
-          'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-950 border border-emerald-500/80 hover:border-emerald-400 shadow-[0_1px_12px_-3px_rgba(190,143,42,0.45)] hover:shadow-[0_2px_18px_-3px_rgba(190,143,42,0.6)]':
+          'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-50 border border-emerald-500/80 hover:border-emerald-400 shadow-[0_1px_12px_-3px_rgba(200,16,46,0.45)] hover:shadow-[0_2px_18px_-3px_rgba(200,16,46,0.6)]':
             variant === 'primary',
           // dark
           'bg-gray-900 hover:bg-gray-800 active:bg-gray-950 text-gray-100 border border-gray-700 hover:border-gray-600':
@@ -177,6 +177,44 @@ export function Card({ children, className = '' }: { children: React.ReactNode; 
   return (
     <div className={cn('bg-gray-900/60 border border-gray-800/70 rounded-xl', className)}>
       {children}
+    </div>
+  );
+}
+
+/* ── LazyImage — skeleton mientras carga, fade-in al terminar ───── */
+interface LazyImageProps {
+  src: string;
+  alt: string;
+  className?: string;
+  wrapperClassName?: string;
+}
+
+export function LazyImage({ src, alt, className = '', wrapperClassName = '' }: LazyImageProps) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError]   = useState(false);
+  return (
+    <div className={cn('relative overflow-hidden', wrapperClassName)}>
+      {!loaded && !error && (
+        <div className="absolute inset-0 bg-gray-800/60 animate-pulse" />
+      )}
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60">
+          <Icon.X className="w-4 h-4 text-gray-700" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        className={cn(
+          'transition-opacity duration-500',
+          loaded ? 'opacity-100' : 'opacity-0',
+          className,
+        )}
+      />
     </div>
   );
 }

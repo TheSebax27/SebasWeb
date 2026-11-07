@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { compressImage } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { EntretenimientoItem, TipoEntretenimiento, EstadoEntretenimiento } from '../types';
-import { PageHeader, Btn, Field, EmptyState, ConfirmDialog, StatTile, Icon, inputCls, textareaCls, selectCls } from '../components/UI';
+import { PageHeader, Btn, Field, EmptyState, ConfirmDialog, StatTile, Icon, LazyImage, inputCls, textareaCls, selectCls } from '../components/UI';
 
 /* ── Constantes ─────────────────────────────────────────── */
 export const TIPOS: { valor: TipoEntretenimiento; label: string; emoji: string }[] = [
@@ -89,7 +90,7 @@ function ItemCard({ item, esAdmin, subiendoPortadaId, onEliminar, onCambiarPorta
       {/* Portada */}
       <div className="relative" style={{ aspectRatio: '2/3' }}>
         {item.url_portada ? (
-          <img src={item.url_portada} alt={item.titulo} loading="lazy" decoding="async" className="w-full h-full object-cover transition-opacity duration-300" />
+          <LazyImage src={item.url_portada} alt={item.titulo} className="w-full h-full object-cover" wrapperClassName="w-full h-full" />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900/60 gap-2">
             <span className="text-4xl opacity-20">{TIPOS.find(t => t.valor === item.tipo)?.emoji}</span>
@@ -262,9 +263,10 @@ export function Entretenimiento() {
   async function subirPortada(itemId: string, file: File, tipo: string) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
+    const compressed = await compressImage(file, 900, 0.82);
     const fd = new FormData();
     fd.append('item_id', itemId);
-    fd.append('portada', file);
+    fd.append('portada', compressed);
     fd.append('tipo', tipo);
     await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subir-portada-entretenimiento`, {
       method: 'POST',

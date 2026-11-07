@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { compressImage } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { Modulo, Submodulo, SubmoduloFoto } from '../types';
-import { PageHeader, Btn, Field, EmptyState, ConfirmDialog, Icon, inputCls, textareaCls } from '../components/UI';
+import { PageHeader, Btn, Field, EmptyState, ConfirmDialog, Icon, LazyImage, inputCls, textareaCls } from '../components/UI';
 
 export function SubmoduloDetalle() {
   const { id, subId } = useParams<{ id: string; subId: string }>();
@@ -54,9 +55,10 @@ export function SubmoduloDetalle() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setUploadError('Sesión expirada'); return; }
     setSubiendo(true); setUploadError(null);
+    const compressed = await compressImage(archivoSeleccionado, 1200, 0.82);
     const formData = new FormData();
     formData.append('submodulo_id', subId);
-    formData.append('foto', archivoSeleccionado);
+    formData.append('foto', compressed);
     formData.append('descripcion', descripcion.trim());
     try {
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subir-foto-submodulo`, {
@@ -203,7 +205,7 @@ export function SubmoduloDetalle() {
                   <Icon.Trash className="w-3.5 h-3.5" />
                 </button>
               )}
-              <img src={f.url_publica ?? ''} alt={f.descripcion ?? submodulo.nombre} loading="lazy" decoding="async" className="w-full object-cover aspect-square transition-opacity duration-300" />
+              <LazyImage src={f.url_publica ?? ''} alt={f.descripcion ?? submodulo.nombre} className="w-full object-cover aspect-square" wrapperClassName="aspect-square" />
 
               {/* Descripción editable */}
               {editandoFoto === f.id ? (

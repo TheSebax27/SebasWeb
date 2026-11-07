@@ -12,6 +12,7 @@ interface LinkDef {
 }
 
 const LINKS: LinkDef[] = [
+  { to: '/dashboard',       label: 'Dashboard' },
   { to: '/',                label: 'Tableros',        seccion: 'galeria' },
   { to: '/finanzas',        label: 'Finanzas',        seccion: 'finanzas' },
   { to: '/metas',           label: 'Metas',           seccion: 'metas' },

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { compressImage } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { Modulo, ModuloFoto, Submodulo } from '../types';
-import { PageHeader, Btn, Field, EmptyState, ConfirmDialog, Icon, inputCls, textareaCls } from '../components/UI';
+import { PageHeader, Btn, Field, EmptyState, ConfirmDialog, Icon, LazyImage, inputCls, textareaCls } from '../components/UI';
 
 export function ModuloDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -68,9 +69,10 @@ export function ModuloDetalle() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setUploadError('Sesión expirada'); return; }
     setSubiendo(true); setUploadError(null);
+    const compressed = await compressImage(archivoSeleccionado, 1200, 0.82);
     const formData = new FormData();
     formData.append('modulo_id', id);
-    formData.append('foto', archivoSeleccionado);
+    formData.append('foto', compressed);
     formData.append('descripcion', descripcion.trim());
     try {
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subir-foto`, {
@@ -255,7 +257,7 @@ export function ModuloDetalle() {
                     <Icon.Trash className="w-3.5 h-3.5" />
                   </button>
                 )}
-                <img src={f.url_publica ?? ''} alt={f.descripcion ?? modulo.nombre} loading="lazy" decoding="async" className="w-full object-cover aspect-square transition-opacity duration-300" />
+                <LazyImage src={f.url_publica ?? ''} alt={f.descripcion ?? modulo.nombre} className="w-full object-cover aspect-square" wrapperClassName="aspect-square" />
 
                 {/* Descripción editable */}
                 {editandoFoto === f.id ? (

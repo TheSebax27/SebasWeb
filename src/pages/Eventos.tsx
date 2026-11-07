@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { compressImage } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { Concierto, Partido, EstadoAsistencia } from '../types';
-import { PageHeader, Btn, Field, EmptyState, ConfirmDialog, StatTile, Icon, inputCls, textareaCls } from '../components/UI';
+import { PageHeader, Btn, Field, EmptyState, ConfirmDialog, StatTile, Icon, LazyImage, inputCls, textareaCls } from '../components/UI';
 
 type TabEventos = 'conciertos' | 'partidos';
 type TablaEvento = 'conciertos' | 'partidos';
@@ -34,7 +35,7 @@ function FotoEvento({ url, esAdmin, subiendo, onFile, emoji }: {
         title={esAdmin ? (url ? 'Cambiar foto' : 'Agregar foto') : undefined}
       >
         {url ? (
-          <img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover transition-opacity duration-300" />
+          <LazyImage src={url} alt="" className="w-full h-full object-cover" wrapperClassName="w-full h-full" />
         ) : (
           <span className="text-2xl opacity-40">{emoji}</span>
         )}
@@ -211,10 +212,11 @@ export function Eventos() {
   async function subirFotoEvento(itemId: string, tabla: TablaEvento, file: File) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
+    const compressed = await compressImage(file, 900, 0.82);
     const fd = new FormData();
     fd.append('item_id', itemId);
     fd.append('tabla', tabla);
-    fd.append('foto', file);
+    fd.append('foto', compressed);
     await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subir-foto-evento`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string },

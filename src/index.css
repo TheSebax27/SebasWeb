@@ -20,18 +20,18 @@
   --color-gray-900: #1D1712;
   --color-gray-950: #100C09;
 
-  /* -- Dorado (reemplaza la escala "emerald" — acento principal) - */
-  --color-emerald-50:  #FBF3DC;
-  --color-emerald-100: #F5E6B8;
-  --color-emerald-200: #ECD48A;
-  --color-emerald-300: #DFBC5C;
-  --color-emerald-400: #D1A63F;
-  --color-emerald-500: #BE8F2A;
-  --color-emerald-600: #9C7420;
-  --color-emerald-700: #7A5A19;
-  --color-emerald-800: #5A4213;
-  --color-emerald-900: #3C2C0D;
-  --color-emerald-950: #241A08;
+  /* -- Carmesí (reemplaza la escala "emerald" — acento principal) - */
+  --color-emerald-50:  #FFF1F2;
+  --color-emerald-100: #FFE0E3;
+  --color-emerald-200: #FFC0C8;
+  --color-emerald-300: #FF8FA0;
+  --color-emerald-400: #F05070;
+  --color-emerald-500: #C8102E;
+  --color-emerald-600: #A80D26;
+  --color-emerald-700: #870A1E;
+  --color-emerald-800: #650715;
+  --color-emerald-900: #3A040C;
+  --color-emerald-950: #220208;
 
   /* -- Salvia (verde apagado, solo para estados "éxito") --------- */
   --color-sage-400: #8FAF64;
@@ -109,8 +109,8 @@
 /* -- Sello destello: la marca que aparece en login, navbar y ---- */
 /* -- encabezados de página --------------------------------------- */
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 8px 0 rgba(222,180,80,.35); }
-  50%       { box-shadow: 0 0 18px 3px rgba(222,180,80,.55); }
+  0%, 100% { box-shadow: 0 0 8px 0 rgba(200,16,46,.35); }
+  50%       { box-shadow: 0 0 18px 3px rgba(200,16,46,.55); }
 }
 .nav-glow { animation: glow 3s ease-in-out infinite; }
 
