@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient';
 import { Transaccion, CategoriaFinanzas, TipoTransaccion, Prestamo, TipoPrestamo, EstadoPrestamo, Credito, TipoCredito } from '../types';
-import { PageHeader, Btn, Field, StatTile, EmptyState, ConfirmDialog, inputCls, selectCls } from '../components/UI';
+import { PageHeader, Btn, Field, StatTile, EmptyState, ConfirmDialog, Icon, inputCls, selectCls } from '../components/UI';
 
 /* ── Helpers ── */
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -54,6 +55,7 @@ export function Finanzas() {
   const [errTx,  setErrTx]   = useState<string|null>(null);
   const [errCat, setErrCat]  = useState<string|null>(null);
   const [confirmTx, setConfirmTx] = useState<Transaccion|null>(null);
+  const [txDetalle, setTxDetalle] = useState<Transaccion|null>(null);
 
   /* Préstamos */
   const [prestamos,    setPrestamos]    = useState<Prestamo[]>([]);
@@ -712,7 +714,7 @@ export function Finanzas() {
                   const cat=tx.categorias_finanzas;
                   const esI=tx.tipo==='ingreso';
                   return (
-                    <div key={tx.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-800/50 transition-colors ${i<grupo.items.length-1?'border-b border-gray-800':''}`}>
+                    <div key={tx.id} onClick={()=>setTxDetalle(tx)} className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-pointer ${i<grupo.items.length-1?'border-b border-gray-800':''}`}>
                       <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-base shrink-0">
                         {cat?.emoji??(esI?'↓':'↑')}
                       </div>
@@ -727,7 +729,7 @@ export function Finanzas() {
                         {esI?'+':'-'}${fmt(+tx.monto)}
                       </div>
                       {canEdit && (
-                        <button onClick={()=>setConfirmTx(tx)}
+                        <button onClick={e=>{e.stopPropagation();setConfirmTx(tx);}}
                           className="text-gray-700 hover:text-rose-400 transition-colors cursor-pointer p-1 shrink-0">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
                             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
@@ -1042,6 +1044,61 @@ export function Finanzas() {
           )}
         </>
       )}
+
+      {/* Modal detalle transacción */}
+      <Dialog.Root open={!!txDetalle} onOpenChange={o=>{ if(!o) setTxDetalle(null); }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-gray-950/80 backdrop-blur-sm" />
+          <Dialog.Content className="dialog-content fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl focus:outline-none">
+            {txDetalle && (() => {
+              const cat  = txDetalle.categorias_finanzas;
+              const esI  = txDetalle.tipo === 'ingreso';
+              return (
+                <>
+                  <div className="flex items-start justify-between gap-3 mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-xl shrink-0">
+                        {cat?.emoji ?? (esI ? '↓' : '↑')}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-100">{cat?.nombre ?? 'Sin categoría'}</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">{fmtFecha(txDetalle.fecha)}</p>
+                      </div>
+                    </div>
+                    <Dialog.Close className="text-gray-600 hover:text-gray-300 transition-colors cursor-pointer p-1 shrink-0">
+                      <Icon.X className="w-4 h-4" />
+                    </Dialog.Close>
+                  </div>
+
+                  <div className={`text-2xl font-serif font-semibold mb-5 ${esI ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {esI ? '+' : '-'}${fmt(+txDetalle.monto)}
+                  </div>
+
+                  {txDetalle.descripcion ? (
+                    <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
+                      <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-600 mb-1.5">Descripción</p>
+                      <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{txDetalle.descripcion}</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600 italic">Sin descripción.</p>
+                  )}
+
+                  {canEdit && (
+                    <div className="mt-5 pt-4 border-t border-gray-800 flex justify-end">
+                      <button
+                        onClick={() => { setConfirmTx(txDetalle); setTxDetalle(null); }}
+                        className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-rose-400 transition-colors cursor-pointer"
+                      >
+                        <Icon.Trash className="w-3.5 h-3.5" /> Eliminar
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       {/* Dialogs de confirmación */}
       <ConfirmDialog

@@ -1,20 +1,31 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
-import { Login } from './pages/Login';
-import { Modulos } from './pages/Modulos';
-import { ModuloDetalle } from './pages/ModuloDetalle';
-import { CrearModulo } from './pages/CrearModulo';
-import { Usuarios } from './pages/Usuarios';
-import { Finanzas } from './pages/Finanzas';
-import { Metas } from './pages/Metas';
-import { Gym } from './pages/Gym';
-import { Notas } from './pages/Notas';
-import { Entretenimiento } from './pages/Entretenimiento';
-import { Eventos } from './pages/Eventos';
-import { Dashboard } from './pages/Dashboard';
-import { SubmoduloDetalle } from './pages/SubmoduloDetalle';
+
+/* Carga diferida — cada página se descarga solo cuando se visita */
+const Login           = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const Modulos         = lazy(() => import('./pages/Modulos').then(m => ({ default: m.Modulos })));
+const ModuloDetalle   = lazy(() => import('./pages/ModuloDetalle').then(m => ({ default: m.ModuloDetalle })));
+const CrearModulo     = lazy(() => import('./pages/CrearModulo').then(m => ({ default: m.CrearModulo })));
+const Usuarios        = lazy(() => import('./pages/Usuarios').then(m => ({ default: m.Usuarios })));
+const Finanzas        = lazy(() => import('./pages/Finanzas').then(m => ({ default: m.Finanzas })));
+const Metas           = lazy(() => import('./pages/Metas').then(m => ({ default: m.Metas })));
+const Gym             = lazy(() => import('./pages/Gym').then(m => ({ default: m.Gym })));
+const Notas           = lazy(() => import('./pages/Notas').then(m => ({ default: m.Notas })));
+const Entretenimiento = lazy(() => import('./pages/Entretenimiento').then(m => ({ default: m.Entretenimiento })));
+const Eventos         = lazy(() => import('./pages/Eventos').then(m => ({ default: m.Eventos })));
+const Dashboard       = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const SubmoduloDetalle= lazy(() => import('./pages/SubmoduloDetalle').then(m => ({ default: m.SubmoduloDetalle })));
+
+function PageFallback() {
+  return (
+    <div className="flex items-center justify-center h-32">
+      <div className="w-5 h-5 border-2 border-gray-700 border-t-emerald-500 rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,7 +36,9 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className="drift-slower absolute top-1/2 -right-20 w-[28rem] h-[28rem] bg-emerald-500/[0.03] rounded-full blur-3xl" />
       </div>
       <Navbar />
-      <main className="relative z-10">{children}</main>
+      <main className="relative z-10">
+        <Suspense fallback={<PageFallback />}>{children}</Suspense>
+      </main>
     </>
   );
 }
@@ -58,29 +71,31 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+        <Suspense fallback={null}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
-          {/* Galería/Módulos — accesible según permiso "galeria" */}
-          <Route path="/" element={<SeccionRoute seccion="galeria"><Modulos /></SeccionRoute>} />
-          <Route path="/modulos/nuevo" element={<AdminRoute><CrearModulo /></AdminRoute>} />
-          <Route path="/modulos/:id" element={<SeccionRoute seccion="galeria"><ModuloDetalle /></SeccionRoute>} />
-          <Route path="/modulos/:id/submodulos/:subId" element={<SeccionRoute seccion="galeria"><SubmoduloDetalle /></SeccionRoute>} />
+            {/* Galería/Módulos */}
+            <Route path="/" element={<SeccionRoute seccion="galeria"><Modulos /></SeccionRoute>} />
+            <Route path="/modulos/nuevo" element={<AdminRoute><CrearModulo /></AdminRoute>} />
+            <Route path="/modulos/:id" element={<SeccionRoute seccion="galeria"><ModuloDetalle /></SeccionRoute>} />
+            <Route path="/modulos/:id/submodulos/:subId" element={<SeccionRoute seccion="galeria"><SubmoduloDetalle /></SeccionRoute>} />
 
-          {/* Secciones con permiso granular */}
-          <Route path="/finanzas"        element={<SeccionRoute seccion="finanzas"><Finanzas /></SeccionRoute>} />
-          <Route path="/metas"           element={<SeccionRoute seccion="metas"><Metas /></SeccionRoute>} />
-          <Route path="/gym"             element={<SeccionRoute seccion="gym"><Gym /></SeccionRoute>} />
-          <Route path="/notas"           element={<SeccionRoute seccion="notas"><Notas /></SeccionRoute>} />
-          <Route path="/entretenimiento" element={<SeccionRoute seccion="entretenimiento"><Entretenimiento /></SeccionRoute>} />
-          <Route path="/eventos"         element={<SeccionRoute seccion="eventos"><Eventos /></SeccionRoute>} />
+            {/* Secciones */}
+            <Route path="/finanzas"        element={<SeccionRoute seccion="finanzas"><Finanzas /></SeccionRoute>} />
+            <Route path="/metas"           element={<SeccionRoute seccion="metas"><Metas /></SeccionRoute>} />
+            <Route path="/gym"             element={<SeccionRoute seccion="gym"><Gym /></SeccionRoute>} />
+            <Route path="/notas"           element={<SeccionRoute seccion="notas"><Notas /></SeccionRoute>} />
+            <Route path="/entretenimiento" element={<SeccionRoute seccion="entretenimiento"><Entretenimiento /></SeccionRoute>} />
+            <Route path="/eventos"         element={<SeccionRoute seccion="eventos"><Eventos /></SeccionRoute>} />
 
-          {/* Dashboard — accesible a todos los autenticados */}
-          <Route path="/dashboard" element={<AuthRoute><Dashboard /></AuthRoute>} />
+            {/* Dashboard */}
+            <Route path="/dashboard" element={<AuthRoute><Dashboard /></AuthRoute>} />
 
-          {/* Solo admin */}
-          <Route path="/usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
-        </Routes>
+            {/* Solo admin */}
+            <Route path="/usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   );
